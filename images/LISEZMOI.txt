@@ -1,0 +1,8 @@
+Range ici tes propres images (PNG conseillé, fond transparent).
+
+Puis déclare leur chemin dans student_config.py, section MISSION BONUS :
+
+    ship_sprite = "images/vaisseau.png"
+
+Si le chemin est faux, le jeu garde son dessin par défaut et te le
+signale dans la carte des notions (touche Échap). Rien ne casse.
