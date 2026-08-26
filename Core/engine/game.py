@@ -40,14 +40,31 @@ class Game:
             return 1
 
     def _hover_zones(self):
-        """Rectangles survolables en pause, selon la position du vaisseau."""
+        """Rectangles survolables en pause.
+
+        Règle du contrat (chapitre 2) : une zone n'est survolable que si
+        une instance de son élément est présente à l'écran. ship et hud
+        sont toujours là ; asteroid n'existe que s'il y a un astéroïde ;
+        bonus n'existe que si un bonus est tombé.
+        """
         ship = pygame.Rect(int(self.ship.x - 60), int(self.ship.y - 50), 120, 100)
         ship = ship.clip(pygame.Rect(0, 36, C.WIDTH, C.HEIGHT))
-        return {
+        zones = {
             "hud": pygame.Rect(0, 0, C.WIDTH, 34),
             "ship": ship,
             "field": pygame.Rect(0, 40, C.WIDTH, C.HEIGHT - 200),
         }
+        # astéroïde : la zone entoure le premier astéroïde présent
+        if self.enemies:
+            e = self.enemies[0]
+            r = getattr(e, "radius", 24)
+            zones["asteroid"] = pygame.Rect(int(e.x - r - 10), int(e.y - r - 10),
+                                            int(r * 2 + 20), int(r * 2 + 20))
+        # bonus : la zone entoure le premier bonus tombé
+        if self.powerups:
+            p = self.powerups[0]
+            zones["bonus"] = pygame.Rect(int(p.x - 24), int(p.y - 24), 48, 48)
+        return zones
 
     # ------------------------------------------------------------------
     def reset(self):
@@ -67,7 +84,14 @@ class Game:
         self.combo = 1
         self.wave = 0
         self.wave_timer = 30
-        self.bonus_given = False
+
+        # --- Chapitre 2 : score, combo, bonus ---
+        self.combo_timer = 0            # frames depuis le dernier tir tiré
+        self.bonus_next = None          # prochain palier de score (bonus)
+        self.bonus_mult = 1.0           # multiplicateur de bonus actif
+        self.bonus_active_frames = 0    # frames restantes du bonus actif
+        self.hud_highlight = False      # HUD en mode mise en avant
+        self.low_ammo_alert = False     # alerte munitions basses
 
         self.fire_cd = 0
         self.reloading = 0
@@ -156,6 +180,7 @@ class Game:
         self._collisions(f)
         self._spawn_logic(f)
         self._timers()
+        self._timers_ch2(f)
         self._student_hook()
 
         self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo)
@@ -236,6 +261,11 @@ class Game:
     def _update_bullets(self):
         for b in self.bullets:
             b.update()
+        # un tir qui sort par le haut sans avoir touché = tir raté -> reset combo
+        missed = [b for b in self.bullets if b.dead]
+        if missed and self.combo > 1:
+            self.combo = 1
+            self.combo_timer = 0
         self.bullets = [b for b in self.bullets if not b.dead]
 
     def _update_enemies(self, f):
@@ -276,7 +306,7 @@ class Game:
         for p in list(self.powerups):
             if self.ship.rect.colliderect(p.rect):
                 self.powerups.remove(p)
-                self._apply_powerup(p)
+                self._apply_powerup(p, f)
 
         # tir allié : les tirs peuvent aussi toucher le vaisseau en retombant
         if f.friendly_fire:
@@ -284,27 +314,62 @@ class Game:
                 if b.y > C.HEIGHT - 8 and b.rect.colliderect(self.ship.rect):
                     self.bullets.remove(b)
 
+    def _points_per_hit(self, f):
+        """Points par astéroïde. Si l'étudiant a défini points_per_hit,
+        on l'utilise ; sinon on le calcule (base_hit_points * bonus_points)
+        comme le fait le fil rouge. Défaut neutre = 0."""
+        if f.unlocked.get("points_per_hit") and f.points_per_hit:
+            return float(f.points_per_hit)
+        return float(f.base_hit_points) * float(f.bonus_points)
+
     def _destroy(self, enemy, f):
         if enemy in self.enemies:
             self.enemies.remove(enemy)
-        gain = int(f.score_per_hit) * int(f.combo_multiplier) * self.combo
-        self.score += max(0, gain)
+
+        # score = points par tir × multiplicateur de combo (si enchaînement)
+        #         × multiplicateur de bonus actif
+        base = self._points_per_hit(f)
+        combo_factor = self.combo * float(f.combo_multiplier) if self.combo > 1 else 1
+        gain = base * combo_factor * self.bonus_mult
+        self.score += max(0, int(round(gain)))
+
+        # un tir réussi prolonge l'enchaînement
         self.combo += 1
+        self.combo_timer = 0
 
-        if not self.bonus_given and self.score >= int(f.bonus_threshold):
-            self.bonus_given = True
-            self.score += int(f.bonus_threshold) // 10
-            self.ship.lives += 1
+        # bonus récurrent (modèle A) : un bonus tombe à chaque palier franchi
+        self._check_bonus_threshold(f, enemy.x, enemy.y)
 
-        self._spawn_powerup(enemy.x, enemy.y, f)
         for _ in range(8):
             self.particles.append([enemy.x, enemy.y,
                                    random.uniform(-3, 3),
                                    random.uniform(-3, 3), 20])
 
+    def _check_bonus_threshold(self, f, x, y):
+        """Modèle A : bonus à chaque multiple de bonus_threshold, palier
+        réarmé ensuite."""
+        thr = float(f.bonus_threshold)
+        if thr <= 0 or thr >= 10 ** 9:
+            return
+        if self.bonus_next is None:
+            self.bonus_next = thr
+        # peut franchir plusieurs paliers d'un coup sur un gros gain
+        dropped = False
+        while self.score >= self.bonus_next:
+            self.bonus_next += thr
+            dropped = True
+        if dropped:
+            self._spawn_bonus(x, y, f)
+
+    def _spawn_bonus(self, x, y, f):
+        """Fait tomber un bonus (power-up chapitre 2)."""
+        pu = PowerUp(x, y, "gold", "score_bonus", float(f.bonus_duration))
+        self.powerups.append(pu)
+
     def _hurt(self, f):
         self.ship.lives -= 1
-        self.combo = 1
+        self.combo = 1               # le vaisseau touché casse le combo
+        self.combo_timer = 0
         self.ship.invuln = C.INVULN_FRAMES
         if self.ship.lives <= 0:
             self._end_game(f)
@@ -330,16 +395,21 @@ class Game:
             self.powerups.append(
                 PowerUp(x, y, random.choice(colors), "heal", 0))
 
-    def _apply_powerup(self, p):
+    def _apply_powerup(self, p, f=None):
         effect = str(p.effect).lower()
         frames = int(float(p.duration or 0) * C.FPS)
-        if effect == "shield":
+        if effect == "score_bonus":
+            # Chapitre 2 : active le multiplicateur de bonus pour sa durée.
+            mult = float(f.bonus_points) if f else 1.0
+            self.bonus_mult = mult if mult > 0 else 1.0
+            self.bonus_active_frames = max(frames, 1)
+        elif effect == "shield":
             self.shield = max(frames, C.FPS * 3)
         elif effect in ("rapid_fire", "rapid"):
             self.rapid = max(frames, C.FPS * 3)
         else:  # heal et tout effet inconnu
             self.ship.lives += 1
-        if self.max_ammo:
+        if self.max_ammo and effect != "score_bonus":
             self.ship.ammo = min(self.max_ammo, self.ship.ammo + 5)
 
     # ------------------------------------------------------------------
@@ -356,7 +426,9 @@ class Game:
 
         level = f.difficulty(self.score)
         factor = {"easy": 1.0, "normal": 1.35, "hard": 1.8}.get(str(level).lower(), 1.0)
-        speed = max(0.5, speed * factor * float(f.global_difficulty))
+        # mode difficile (chapitre 2) : is_hard accélère le jeu
+        hard_factor = 1.4 if f.is_hard else 1.0
+        speed = max(0.5, speed * factor * hard_factor * float(f.global_difficulty))
 
         positions = f.row_positions(count)
         types = f.enemy_types
@@ -378,6 +450,22 @@ class Game:
 
         self.wave_timer = C.BASE_WAVE_DELAY
 
+    def debug_value(self, key):
+        """Valeur courante d'une grandeur pour l'overlay debug."""
+        if key == "score":
+            return self.score
+        if key == "ammo":
+            return self.ship.ammo
+        if key == "lives":
+            return self.ship.lives
+        if key == "points_per_hit":
+            return int(self._points_per_hit(self.features))
+        if key == "combo":
+            return f"x{self.combo}" if self.combo > 1 else "-"
+        if key == "bonus_mult":
+            return f"x{self.bonus_mult:g}" if self.bonus_mult > 1 else "-"
+        return "?"
+
     def _timers(self):
         if self.shield > 0:
             self.shield -= 1
@@ -388,6 +476,27 @@ class Game:
             p[1] += p[3]
             p[4] -= 1
         self.particles = [p for p in self.particles if p[4] > 0]
+
+    def _timers_ch2(self, f):
+        """Chapitre 2 : combo delay, bonus actif, HUD highlight, alerte."""
+        # délai de combo : reset après combo_reset_delay secondes sans tir
+        delay = float(f.combo_reset_delay)
+        if delay > 0 and self.combo > 1:
+            self.combo_timer += 1
+            if self.combo_timer >= delay * C.FPS:
+                self.combo = 1
+                self.combo_timer = 0
+        # bonus actif : décompte puis retour au multiplicateur 1
+        if self.bonus_active_frames > 0:
+            self.bonus_active_frames -= 1
+            if self.bonus_active_frames == 0:
+                self.bonus_mult = 1.0
+        # HUD de mise en avant : score au-delà du seuil
+        hl = float(f.highlight_score)
+        self.hud_highlight = (hl < 10 ** 9) and (self.score >= hl)
+        # alerte munitions basses
+        lat = float(f.low_ammo_threshold)
+        self.low_ammo_alert = (lat >= 0) and (self.ship.ammo <= lat)
 
     def _student_hook(self):
         """Point d'extension libre de la séance 15."""
@@ -421,9 +530,15 @@ class Game:
             self._draw_starfield(s)
 
         for e in self.enemies:
-            e.draw(s, f.enemy_sprite)
+            # un astéroïde interne prend asteroid_sprite (ch2) ; un ennemi
+            # de l'étudiant (classe) prend enemy_sprite (ch5).
+            spr = f.asteroid_sprite if isinstance(e, Asteroid) else f.enemy_sprite
+            e.draw(s, spr)
         for p in self.powerups:
-            p.draw(s, f.powerup_sprite)
+            # un bonus de score (ch2) prend bonus_sprite ; les autres
+            # power-ups prennent powerup_sprite (ch8).
+            spr = f.bonus_sprite if str(p.effect).lower() == "score_bonus" else f.powerup_sprite
+            p.draw(s, spr)
         for b in self.bullets:
             b.draw(s, f.bullet_sprite)
         for px, py, _, _, life in self.particles:
@@ -438,6 +553,10 @@ class Game:
                                    C.SHIP_W, 2)
 
         hud.draw_hud(s, self.fonts, self)
+
+        # overlay debug (chapitre 2) : si show_debug est activé
+        if self.features.show_debug and self.state == PLAYING:
+            hud.draw_debug_overlay(s, self.fonts, self, self.current_chapter)
 
         if self.reloading > 0:
             ratio = 1 - self.reloading / max(1, int(self.features.reload_time))

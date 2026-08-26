@@ -34,37 +34,61 @@ CATALOG = [
     ("bullet_speed",    "Vitesse des tirs",       "variable", "Règle la vitesse des projectiles",          1, "ship"),
     ("starting_lives",  "Nombre de vies",         "variable", "Fixe le nombre de vies au départ",          1, "ship"),
 
-    ("score_per_hit",   "Points par astéroïde",   "variable", "Chaque astéroïde détruit rapporte",         3, "hud"),
-    ("combo_multiplier","Multiplicateur de combo","variable", "Récompense les enchaînements",              3, "hud"),
-    ("bonus_threshold", "Seuil de bonus",         "variable", "Débloque un bonus à ce score",              3, "hud"),
+    ("base_hit_points", "Points de base",        "variable", "Définit les points rapportés par un astéroïde détruit", 2, "asteroid"),
+    ("points_per_hit",  "Points par tir",         "variable", "Résultat de base_hit_points × bonus_points", 2, "asteroid"),
+    ("combo_multiplier","Multiplicateur de combo","variable", "Amplifie le score quand les tirs s'enchaînent", 2, "hud"),
+    ("combo_reset_delay","Délai de combo",        "variable", "Secondes sans tir avant remise à zéro du combo", 2, "hud"),
+    ("show_debug",      "Affichage debug",        "variable", "Affiche à l'écran les valeurs importantes du moment", 2, "hud"),
+    ("is_hard",         "Mode difficile",         "variable", "Résultat de starting_lives < 3 ; mode plus exigeant", 2, "hud"),
+    ("highlight_score", "Score de mise en avant", "variable", "Seuil au-delà duquel le HUD change d'aspect", 2, "hud"),
+    ("low_ammo_threshold","Seuil munitions basses","variable", "Seuil sous lequel une alerte de munitions s'affiche", 2, "ship"),
+    ("bonus_threshold", "Seuil de bonus",         "variable", "Tous les N points, un bonus apparaît", 2, "hud"),
+    ("bonus_points",    "Multiplicateur de bonus","variable", "Multiplie temporairement les points au ramassage", 2, "bonus"),
+    ("bonus_duration",  "Durée du bonus",         "variable", "Durée en secondes du multiplicateur de bonus", 2, "bonus"),
 
-    ("friendly_fire",   "Tir allié",              "variable", "Tes tirs peuvent te toucher",               4, "ship"),
-    ("difficulty_level","Paliers de difficulté",  "fonction", "La difficulté s'adapte au score",           4, "field"),
-
-    ("spawn_row",       "Formations d'ennemis",   "fonction", "Les ennemis arrivent en rangées",           5, "field"),
-
-    ("reload_time",     "Temps de rechargement",  "variable", "L'arme se recharge après épuisement",        6, "ship"),
-    ("start_countdown", "Compte à rebours",       "variable", "Un 3-2-1 au début de la partie",            6, "hud"),
-    ("should_keep_firing","Autorisation de tir",  "fonction", "Décide quand le tir est permis",            6, "ship"),
-
-    ("hud_text",        "Texte du HUD",           "fonction", "Compose la ligne d'infos en haut",          7, "hud"),
-    ("game_over_text",  "Texte de fin",           "fonction", "Le message de l'écran de fin",              7, "hud"),
-
-    ("powerup_colors",  "Couleurs des bonus",     "variable", "Colore les power-ups",                      8, "field"),
-    ("start_position",  "Position de départ",     "variable", "Où le vaisseau apparaît",                   8, "ship"),
-    ("weapons",         "Armes disponibles",      "variable", "Plusieurs armes sélectionnables",           8, "ship"),
-
-    ("damage",          "Calcul des dégâts",      "fonction", "Paramètre les dégâts infligés",             9, "ship"),
-    ("spawn_pattern",   "Composition des vagues", "fonction", "Nombre et vitesse par vague",               9, "field"),
-
-    ("GLOBAL_DIFFICULTY","Difficulté globale",    "variable", "Règle global de difficulté",               10, "field"),
-
-    ("powerups",        "Bonus personnalisés",    "objet",    "Tes power-ups, en objets",                 11, "field"),
-    ("weapon",          "Arme encapsulée",        "objet",    "Une arme qui gère son cooldown",           12, "ship"),
-    ("enemy_types",     "Bestiaire d'ennemis",    "variable", "Des ennemis aux comportements variés",     13, "field"),
-
-    ("save_highscore",  "Sauvegarde des scores",  "fonction", "Les scores survivent à la partie",         14, "hud"),
-    ("load_highscores", "Lecture des scores",     "fonction", "Affiche les meilleurs scores",             14, "hud"),
+    # --- RÉSERVE (ancien découpage 15) -------------------------------
+    # Ces variables sont conservées mais mises HORS du découpage 12
+    # (chapitre 99 = jamais révélé, quel que soit CURRENT_CHAPTER).
+    # Le nouveau plan est organisé par NOTION Python, pas par feature de
+    # jeu ; chaque variable sera reclassée sur son chapitre cible lors de
+    # la conception du chapitre concerné, via son handoff.
+    #
+    # Plan cible 12 chapitres :
+    #   Ch3  Les conditions        (if/elif/else)
+    #   Ch4  Les boucles           (while, for)
+    #   Ch5  Types composés & import (chaînes, listes, dict, import)
+    #   Ch6  Fonctions 1/2         (définition, paramètres, retour)
+    #   Ch7  Fonctions 2/2         (portée, valeur/référence, récursivité)
+    #   Ch8  Classes 1/2           (classes/instances, attributs, méthodes)
+    #   Ch9  Classes 2/2           (héritage, polymorphisme, méth/attr classe)
+    #   Ch10 Debug & exceptions    (try/except/raise)
+    #   Ch11 Les fichiers          (open/read/write, CSV, JSON)
+    #   Ch12 Bibliothèques & projet (module, package, pip + appli finale)
+    #
+    # Candidats naturels (à confirmer en conception) :
+    #   difficulty_level, should_keep_firing, spawn_row/spawn_pattern, damage -> fonctions (Ch6/7)
+    #   weapons, weapon, powerups, enemy_types, start_position -> classes/objets (Ch8/9)
+    #   save_highscore, load_highscores -> fichiers (Ch11)
+    #   GLOBAL_DIFFICULTY, powerup_colors -> import/bibliothèques (Ch5/12)
+    ("friendly_fire",   "Tir allié",              "variable", "Tes tirs peuvent te toucher",               99, "ship"),
+    ("difficulty_level","Paliers de difficulté",  "fonction", "La difficulté s'adapte au score",           99, "field"),
+    ("spawn_row",       "Formations d'ennemis",   "fonction", "Les ennemis arrivent en rangées",           99, "field"),
+    ("reload_time",     "Temps de rechargement",  "variable", "L'arme se recharge après épuisement",        99, "ship"),
+    ("start_countdown", "Compte à rebours",       "variable", "Un 3-2-1 au début de la partie",            99, "hud"),
+    ("should_keep_firing","Autorisation de tir",  "fonction", "Décide quand le tir est permis",            99, "ship"),
+    ("hud_text",        "Texte du HUD",           "fonction", "Compose la ligne d'infos en haut",          99, "hud"),
+    ("game_over_text",  "Texte de fin",           "fonction", "Le message de l'écran de fin",              99, "hud"),
+    ("powerup_colors",  "Couleurs des bonus",     "variable", "Colore les power-ups",                      99, "field"),
+    ("start_position",  "Position de départ",     "variable", "Où le vaisseau apparaît",                   99, "ship"),
+    ("weapons",         "Armes disponibles",      "variable", "Plusieurs armes sélectionnables",           99, "ship"),
+    ("damage",          "Calcul des dégâts",      "fonction", "Paramètre les dégâts infligés",             99, "ship"),
+    ("spawn_pattern",   "Composition des vagues", "fonction", "Nombre et vitesse par vague",               99, "field"),
+    ("GLOBAL_DIFFICULTY","Difficulté globale",    "variable", "Règle global de difficulté",               99, "field"),
+    ("powerups",        "Bonus personnalisés",    "objet",    "Tes power-ups, en objets",                 99, "field"),
+    ("weapon",          "Arme encapsulée",        "objet",    "Une arme qui gère son cooldown",           99, "ship"),
+    ("enemy_types",     "Bestiaire d'ennemis",    "variable", "Des ennemis aux comportements variés",     99, "field"),
+    ("save_highscore",  "Sauvegarde des scores",  "fonction", "Les scores survivent à la partie",         99, "hud"),
+    ("load_highscores", "Lecture des scores",     "fonction", "Affiche les meilleurs scores",             99, "hud"),
 ]
 
 # Missions bonus visuelles. Chacune est rattachée au chapitre où la
@@ -83,6 +107,8 @@ BONUS = [
     ("background_image","Image de fond",     "variable", "Ton décor en fond d'écran",         1, "hud"),
     ("enemy_sprite",    "Image des ennemis", "variable", "Ton image pour les ennemis",        5, "field"),
     ("powerup_sprite",  "Image des bonus",   "variable", "Ton image pour les power-ups",      8, "field"),
+    ("asteroid_sprite", "Image d'astéroïde", "variable", "Remplace l'image des astéroïdes",   2, "asteroid"),
+    ("bonus_sprite",    "Image de bonus",    "variable", "Remplace l'image des bonus",        2, "bonus"),
 ]
 
 # Zones survolables : rectangles calculés à l'affichage (voir game.py).
@@ -90,6 +116,8 @@ ZONE_LABELS = {
     "ship": "LE VAISSEAU",
     "hud": "LE BANDEAU (HUD)",
     "field": "LA ZONE DE JEU",
+    "asteroid": "UN ASTÉROÏDE",
+    "bonus": "UN BONUS",
 }
 
 
@@ -116,8 +144,11 @@ def text(surf, font, msg, x, y, color=C.WHITE, center=False):
 
 def draw_hud(surf, fonts, state):
     """Bandeau du haut : texte du HUD, vies, vague."""
-    pygame.draw.rect(surf, C.DARK, (0, 0, C.WIDTH, 34))
-    pygame.draw.line(surf, C.BLUE, (0, 34), (C.WIDTH, 34), 2)
+    # HUD de mise en avant (chapitre 2) : le bandeau change d'aspect
+    bg = C.PANEL if getattr(state, "hud_highlight", False) else C.DARK
+    pygame.draw.rect(surf, bg, (0, 0, C.WIDTH, 34))
+    line_col = C.AMBER if getattr(state, "hud_highlight", False) else C.BLUE
+    pygame.draw.line(surf, line_col, (0, 34), (C.WIDTH, 34), 2)
 
     text(surf, fonts.reg, state.hud_line, 10, 8)
 
@@ -128,6 +159,46 @@ def draw_hud(surf, fonts, state):
                             [(x, 10), (x - 7, 24), (x, 20), (x + 7, 24)])
 
     text(surf, fonts.small, f"vague {state.wave}", C.WIDTH - 150, 11, C.GREY)
+
+    # alerte munitions basses (chapitre 2)
+    if getattr(state, "low_ammo_alert", False):
+        text(surf, fonts.small, "! MUNITIONS BASSES", C.WIDTH // 2 - 90, 42, C.ORANGE)
+
+
+# grandeurs affichables par l'overlay debug, avec le chapitre où elles
+# deviennent pertinentes (progressivité : jamais avant leur notion).
+DEBUG_ROWS = [
+    ("score", "score", 1),
+    ("munitions", "ammo", 1),
+    ("vies", "lives", 1),
+    ("points/tir", "points_per_hit", 2),
+    ("combo", "combo", 2),
+    ("bonus actif", "bonus_mult", 2),
+]
+
+
+def draw_debug_overlay(surf, fonts, state, current_chapter):
+    """Overlay show_debug : affiche les grandeurs pertinentes du moment.
+    Filtré par la progressivité : n'affiche pas une grandeur d'une notion
+    non encore vue."""
+    rows = [(lbl, key) for lbl, key, ch in DEBUG_ROWS if ch <= current_chapter]
+    if not rows:
+        return
+    pad = 8
+    w = 210
+    h = pad * 2 + len(rows) * 22 + 22
+    x, y = 10, 44
+    panel = pygame.Surface((w, h), pygame.SRCALPHA)
+    panel.fill((14, 21, 32, 210))
+    surf.blit(panel, (x, y))
+    pygame.draw.rect(surf, C.LINE, (x, y, w, h), 1, border_radius=6)
+    text(surf, fonts.small, "DEBUG", x + pad, y + pad, C.AMBER)
+    cy = y + pad + 22
+    for lbl, key in rows:
+        val = state.debug_value(key)
+        text(surf, fonts.tiny, lbl, x + pad, cy, C.GREY)
+        text(surf, fonts.tiny, str(val), x + w - pad - 70, cy, C.WHITE)
+        cy += 22
 
 
 def draw_countdown(surf, fonts, value):

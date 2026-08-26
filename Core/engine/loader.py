@@ -168,10 +168,27 @@ class StudentFeatures:
         self.bullet_speed = self._val("bullet_speed", 8.0, (int, float))
         self.starting_lives = self._val("starting_lives", 3, int)
 
-        # --- Séance 3 : score ---------------------------------------------
-        self.score_per_hit = self._val("score_per_hit", 0, (int, float))
+        # --- Chapitre 2 : score, combo, bonus, comparaisons ---------------
+        # Défauts neutres : rien ne doit ressembler à une réussite.
+        # Tant que base_hit_points / points_per_hit ne sont pas définis,
+        # le score n'augmente pas (0). Les seuils par défaut ne se
+        # déclenchent jamais (valeur hors d'atteinte).
+        self.base_hit_points = self._val("base_hit_points", 0, (int, float))
+        self.bonus_points = self._val("bonus_points", 1, (int, float))
+        self.points_per_hit = self._val("points_per_hit", 0, (int, float))
         self.combo_multiplier = self._val("combo_multiplier", 1, (int, float))
+        self.combo_reset_delay = self._val("combo_reset_delay", 0, (int, float))
+        self.show_debug = self._val("show_debug", False, bool)
+        self.is_hard = self._val("is_hard", False, bool)
+        self.highlight_score = self._val("highlight_score", 10 ** 9, (int, float))
+        self.low_ammo_threshold = self._val("low_ammo_threshold", -1, (int, float))
         self.bonus_threshold = self._val("bonus_threshold", 10 ** 9, (int, float))
+        self.bonus_duration = self._val("bonus_duration", 0, (int, float))
+        # sprites chapitre 2
+        self.asteroid_sprite = self._val("asteroid_sprite", None, str)
+        self.bonus_sprite = self._val("bonus_sprite", None, str)
+        # compat : ancien nom du chapitre 3 (découpage 15), dormant.
+        self.score_per_hit = self._val("score_per_hit", 0, (int, float))
 
         # --- Séance 4 : booléens et conditions -----------------------------
         self.friendly_fire = self._val("friendly_fire", False, bool)
