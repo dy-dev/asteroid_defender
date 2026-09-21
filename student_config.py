@@ -64,3 +64,36 @@ bullet_speed = 9.0
 
 # nombre de vies au départ
 starting_lives = 3
+
+# points de base d'un astéroïde
+base_hit_points = 10
+
+# multiplicateur appliqué au ramassage du bonus
+bonus_points = 3
+
+# points par tir : un calcul entre variables
+points_per_hit = base_hit_points * bonus_points
+
+# le score enchaîné est multiplié par ce nombre
+combo_multiplier = 2
+
+# secondes sans tir avant remise à zéro du combo
+combo_reset_delay = 3.0
+
+# booléen posé : affiche l'overlay de débogage
+show_debug = True
+
+# booléen résultant : mode difficile si moins de 3 vies
+is_hard = starting_lives < 3
+
+# seuil au-delà duquel le HUD change
+highlight_score = 1000
+
+# seuil sous lequel une alerte s'affiche
+low_ammo_threshold = 5
+
+# tous les N points, un bonus apparaît
+bonus_threshold = 500
+
+# durée du multiplicateur, en secondes
+bonus_duration = 5.0
