@@ -63,3 +63,36 @@ bullet_speed = 9.0
 
 # number of lives at the start
 starting_lives = 3
+
+# base points for an asteroid
+base_hit_points = 10
+
+# multiplier applied when the bonus is picked up
+bonus_points = 3
+
+# points per hit: a calculation between variables
+points_per_hit = base_hit_points * bonus_points
+
+# the chained score is multiplied by this number
+combo_multiplier = 2
+
+# seconds without firing before the combo resets
+combo_reset_delay = 3.0
+
+# boolean set by hand: shows the debug overlay
+show_debug = True
+
+# resulting boolean: hard mode with fewer than 3 lives
+is_hard = starting_lives < 3
+
+# threshold above which the HUD changes
+highlight_score = 1000
+
+# threshold below which an alert appears
+low_ammo_threshold = 5
+
+# every N points, a bonus appears
+bonus_threshold = 500
+
+# duration of the multiplier, in seconds
+bonus_duration = 5.0
