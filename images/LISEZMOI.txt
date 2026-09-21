@@ -1,0 +1,8 @@
+Store personal images here (PNG recommended, transparent background).
+
+Then declare their path in student_config.py, BONUS MISSION section:
+
+    ship_sprite = "images/ship.png"
+
+If the path is wrong, the game keeps its default drawing and reports
+it in the concept map (Esc key). Nothing breaks.
