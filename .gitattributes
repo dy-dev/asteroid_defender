@@ -1,0 +1,8 @@
+# Line endings normalized to LF in the repository and on output.
+# Without this rule, packets produced on Windows reach students on
+# macOS or Linux with CRLF line endings.
+* text=auto eol=lf
+
+# Repository-only files: left out of the packets produced by git archive.
+.gitattributes export-ignore
+.gitignore     export-ignore

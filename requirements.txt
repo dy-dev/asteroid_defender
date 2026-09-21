@@ -1,0 +1,8 @@
+# Asteroid Defender - dependencies
+#
+# IMPORTANT: this project needs Python 3.10 to 3.12.
+# pygame does not install on more recent Python versions
+# (the install tries to recompile everything and fails).
+# Create the virtual environment with Python 3.12 before installing.
+
+pygame==2.6.1 ; python_version >= "3.10" and python_version < "3.13"
