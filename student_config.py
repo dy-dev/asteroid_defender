@@ -1,8 +1,8 @@
 # =====================================================================
 #  student_config.py
 #
-#  The only file to fill in. It is empty for now: that is normal.
-#  It fills up session after session.
+#  The only file to fill in. It fills up session after session: every
+#  line already written stays, the new ones are added below.
 #
 #  -------------------------------------------------------------------
 #  How to write a setting
@@ -45,3 +45,21 @@
 #
 #  The game always starts from Core/main.py, never from this file.
 # =====================================================================
+
+# title shown at the top of the window
+window_title = "Asteroid Defender"
+
+# name shown in the HUD
+player_name = "Nova"
+
+# amount of ammunition: the ship can fire
+nb_ammo = 40
+
+# movement speed of the ship
+ship_speed = 6
+
+# speed of the bullets
+bullet_speed = 9.0
+
+# number of lives at the start
+starting_lives = 3
