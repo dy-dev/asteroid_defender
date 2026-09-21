@@ -1,8 +1,8 @@
 # =====================================================================
 #  student_config.py
 #
-#  Seul fichier à remplir. Il est vide pour l'instant : c'est normal.
-#  Il se remplit au fil des séances.
+#  Seul fichier à remplir. Il se remplit au fil des séances : chaque
+#  ligne déjà écrite reste, les nouvelles s'ajoutent en dessous.
 #
 #  -------------------------------------------------------------------
 #  Comment écrire un réglage
@@ -46,3 +46,21 @@
 #  Le jeu se lance toujours depuis Core/main.py, jamais depuis ce
 #  fichier.
 # =====================================================================
+
+# titre affiché en haut de la fenêtre
+window_title = "Asteroid Defender"
+
+# nom affiché dans le HUD
+player_name = "Nova"
+
+# nombre de munitions : le vaisseau peut tirer
+nb_ammo = 40
+
+# vitesse de déplacement du vaisseau
+ship_speed = 6
+
+# vitesse des projectiles
+bullet_speed = 9.0
+
+# nombre de vies au départ
+starting_lives = 3
