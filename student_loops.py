@@ -11,8 +11,9 @@
 #  Chaque bloc correspond à un événement du jeu et commence par une
 #  condition sur cet événement, par exemple :  if event == "countdown":
 #  Le bloc contient une boucle. Quand l'événement se déclenche, le jeu
-#  déroule cette boucle à l'écran, tour après tour, à un rythme qui
-#  permet de la suivre des yeux.
+#  exécute cette boucle un tour à la fois, étalé dans le temps : l'effet
+#  de chaque tour apparaît à l'écran — la valeur du décompte qui change,
+#  la jauge qui monte, un projectile qui part.
 #
 #  Aucune fonction ici : uniquement des boucles dans des blocs
 #  d'événement.
