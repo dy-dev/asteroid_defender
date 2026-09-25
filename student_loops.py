@@ -10,7 +10,9 @@
 #  Each block matches a game event and starts with a condition on that
 #  event, for example:  if event == "countdown":
 #  The block holds a loop. When the event happens, the game runs that
-#  loop on screen, turn after turn, at a pace the eye can follow.
+#  loop one turn at a time, spread over time: the effect of each turn
+#  shows on screen — the countdown value changing, the gauge rising, a
+#  projectile leaving.
 #
 #  No functions here: only loops inside event blocks.
 #
