@@ -23,6 +23,12 @@ PLAYING, PAUSED, GAMEOVER, COUNTDOWN = "playing", "paused", "gameover", "countdo
 # game-over screen (score, replay).
 FROZEN = "frozen"
 
+# Chapter 4 — pace of the slow-motion loops (engine side, not student side)
+COUNTDOWN_HOLD = C.FPS // 2     # frames a new countdown value stays on screen
+COUNTDOWN_MAX_HOLDS = 20        # beyond this, the countdown runs at frame pace
+BURST_STEP_FRAMES = 8           # frames between two turns of the burst loop
+LOOP_MSG_FRAMES = C.FPS * 8     # how long a student_loops.py error stays on screen
+
 
 class Game:
     def __init__(self, screen, fonts):
@@ -49,6 +55,10 @@ class Game:
         self.charge = 0
         self.charging = False
         self.burst_remaining = 0
+        self.last_charge = 0        # charge reached by the last charged shot
+        self.last_fired = 0         # value of fired at the end of the last burst
+        self.loop_turns = 0         # turns done by the loop currently / last run
+        self.loop_msg = None        # (text, frames) error banner for student_loops.py
         self.repair_active = False
         self.reset()
 
@@ -130,11 +140,17 @@ class Game:
         # Chapter 4: if the student defines a "countdown" event, use it
         # (their while loop controls the countdown). Otherwise engine default.
         self.countdown_value = 3   # visible value shown to player
+        self.countdown_hold = 0    # frames left showing the current value
+        self.countdown_changes = 0 # number of value changes already held
+        self.countdown_done = False
         countdown = int(f.start_countdown)
-        if self.slow_loops and self.slow_loops.start_event("countdown", {"countdown": 3}):
+        self._check_loops_syntax()
+        if self.slow_loops and self._start_loop("countdown", {"countdown": 3}):
             self.state = COUNTDOWN
             self.countdown_frames = 999  # student loop controls duration
             self.countdown_student = True
+            self.countdown_value = self.slow_loops.namespace.get("countdown", 3)
+            self.countdown_hold = COUNTDOWN_HOLD
         elif countdown > 0:
             self.state = COUNTDOWN
             self.countdown_frames = countdown * C.FPS
@@ -190,7 +206,7 @@ class Game:
                 self._cycle_weapon()
             elif event.key == pygame.K_b and self.state == PLAYING:
                 # Chapter 4: burst fire (student's for loop drives count)
-                if self.burst_remaining == 0:
+                if self.burst_remaining == 0 and not self.charging:
                     self._fire_burst(self.features)
         return True
 
@@ -222,14 +238,33 @@ class Game:
     def update(self):
         if self.state == COUNTDOWN:
             if self.countdown_student and self.slow_loops:
-                # Student's while loop drives the countdown, one iteration
-                # every FPS//2 frames (visible pace, ~0.5s per step).
-                self.countdown_frames -= 1
-                if self.countdown_frames % (C.FPS // 2) == 0:
-                    running, ns = self.slow_loops.step_event("countdown")
-                    self.countdown_value = ns.get("countdown", 0)
-                    if not running:
+                # Student's while loop drives the countdown. Pace: one
+                # turn per frame, but each time the displayed value
+                # changes the engine holds it COUNTDOWN_HOLD frames so it
+                # can be read. Only the first COUNTDOWN_MAX_HOLDS changes
+                # are held: a loop that never ends (counter going up, for
+                # instance) then runs at frame pace and reaches the
+                # 1000-turn safety net in seconds, not minutes.
+                if self.countdown_hold > 0:
+                    self.countdown_hold -= 1
+                    return
+                if self.countdown_done:
+                    self.state = PLAYING
+                    return
+                running, ns = self.slow_loops.step_event("countdown")
+                self.loop_turns = self.slow_loops.iterations("countdown")
+                value = ns.get("countdown", 0)
+                if value != self.countdown_value:
+                    self.countdown_value = value
+                    if self.countdown_changes < COUNTDOWN_MAX_HOLDS:
+                        self.countdown_changes += 1
+                        self.countdown_hold = COUNTDOWN_HOLD
+                if not running:
+                    if self._report_loop_error("countdown"):
                         self.state = PLAYING
+                        return
+                    self.countdown_done = True
+                    self.countdown_hold = COUNTDOWN_HOLD
             else:
                 self.countdown_frames -= 1
                 if self.countdown_frames <= -C.FPS // 2:
@@ -328,14 +363,17 @@ class Game:
                 # start charging
                 self.charging = True
                 self.charge = 0
-                self.slow_loops.start_event("charging", {
-                    "charge": 0, "charge_rate": 3, "max_charge": 100})
+                if not self._start_loop("charging", {
+                        "charge": 0, "charge_rate": 3, "max_charge": 100}):
+                    self.charging = False
             if self.charging:
                 if held:
                     # step the student's while loop once per frame (visible pace)
                     running, ns = self.slow_loops.step_event("charging")
-                    self.charge = ns.get("charge", 0)
+                    self.loop_turns = self.slow_loops.iterations("charging")
+                    self.charge = self._as_number(ns.get("charge", 0))
                     if not running:
+                        self._report_loop_error("charging")
                         # charge reached max or student's break triggered
                         pass  # keep charging state, wait for release
                     return  # don't fire while holding — wait for release
@@ -343,6 +381,7 @@ class Game:
                     # Space released: fire the charged shot
                     self.slow_loops.stop_event("charging")
                     self.charging = False
+                    self.last_charge = self.charge
                     self._fire_charged(f)
                     self.charge = 0
                     return
@@ -415,7 +454,9 @@ class Game:
         scores bonus points per hit."""
         if self.ship.ammo <= 0:
             return
-        power = max(1, self.charge // 20)  # 1..5 tiers based on charge
+        # 1..5 tiers based on charge; clamped, since the student may push
+        # charge well beyond 100 (other max_charge, forgotten break...)
+        power = min(5, max(1, int(self.charge) // 20))
         # ammo cost scales with power: 1, 2, 4, 7, 10 (steeper for high charge)
         ammo_cost = [0, 1, 2, 4, 7, 10][power]
         ammo_cost = min(ammo_cost, self.ship.ammo)  # never below 0
@@ -431,25 +472,81 @@ class Game:
         """Chapter 4: fires N shots in sequence (student's for loop drives N)."""
         if not self.slow_loops or "burst" not in self.slow_loops.loops:
             return
-        self.slow_loops.start_event("burst", {
-            "burst_count": 3, "fired": 0})
+        if not self._start_loop("burst", {"burst_count": 3, "fired": 0}):
+            return
         self.burst_remaining = -1  # sentinel: burst is active
+        self.burst_wait = 0
+        self.last_fired = self._as_number(self.slow_loops.namespace.get("fired", 0))
 
     def _step_burst(self, f):
         """Step the burst loop one iteration per frame; each iter fires a bullet."""
         if self.burst_remaining == 0 or not self.slow_loops:
             return
+        # one turn every BURST_STEP_FRAMES frames: shots are spaced out
+        # and a skipped turn leaves a visible gap in the burst.
+        if getattr(self, "burst_wait", 0) > 0:
+            self.burst_wait -= 1
+            return
+        self.burst_wait = BURST_STEP_FRAMES
+        before = self.last_fired
         running, ns = self.slow_loops.step_event("burst")
-        # each iteration = one shot (no cooldown gating: all N shots fire).
-        # Only fire when the loop actually ran an iteration (running=True).
-        if running and self.ship.ammo > 0:
+        self.loop_turns = self.slow_loops.iterations("burst")
+        after = self._as_number(ns.get("fired", 0))
+        self.last_fired = after
+        # A projectile leaves only when the turn increased fired: a turn
+        # abandoned with continue (or a body without fired += 1) fires nothing.
+        if after > before and self.ship.ammo > 0:
             speed = float(f.bullet_speed) or 8.0
             self.bullets.append(
                 Bullet(self.ship.x, self.ship.y - C.SHIP_H / 2, speed, 1))
             self.ship.ammo = max(0, self.ship.ammo - 1)
         if not running:
+            self._report_loop_error("burst")
             self.burst_remaining = 0
             self.fire_cd = 12  # small cooldown after burst
+
+    # ------------------------------------------------------------------
+    #  Chapter 4 helpers: start a loop, surface its errors
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _as_number(v):
+        return v if isinstance(v, (int, float)) and not isinstance(v, bool) else 0
+
+    def _start_loop(self, event_name, state):
+        """Starts the student's loop for an event. Returns True if the
+        loop is running (False: no loop written for this event, or an
+        error before the first turn, shown in the banner)."""
+        if not self.slow_loops:
+            return False
+        self._check_loops_syntax()
+        if not self.slow_loops.start_event(event_name, state):
+            return False
+        self.loop_turns = 0
+        if not self.slow_loops.is_active(event_name):
+            self._report_loop_error(event_name)
+            return False
+        return True
+
+    def _check_loops_syntax(self):
+        if self.slow_loops:
+            self.slow_loops.reload_if_changed()
+            err = self.slow_loops.syntax_error()
+            if err:
+                self._show_loop_msg(err)
+
+    def _report_loop_error(self, event_name):
+        """Shows the error of a stopped loop, if any. Returns True if
+        there was one."""
+        err = self.slow_loops.get_error(event_name) if self.slow_loops else None
+        if err and event_name in self.slow_loops.loops:
+            label = hud.loop_event_label(event_name)
+            self._show_loop_msg(t("loop_banner_block", name=event_name,
+                                  label=label, error=err))
+            return True
+        return False
+
+    def _show_loop_msg(self, msg):
+        self.loop_msg = (f"student_loops.py · {msg}", LOOP_MSG_FRAMES)
 
     def _update_bullets(self):
         for b in self.bullets:
@@ -745,6 +842,13 @@ class Game:
             return f"x{self.combo}" if self.combo > 1 else "-"
         if key == "bonus_mult":
             return f"x{self.bonus_mult:g}" if self.bonus_mult > 1 else "-"
+        if key == "charge":
+            v = self.charge if self.charging else self.last_charge
+            return f"{v:g}" if isinstance(v, float) else v
+        if key == "fired":
+            return self.last_fired
+        if key == "iterations":
+            return self.loop_turns
         return "?"
 
     def _shield_draw_color(self):
@@ -875,7 +979,7 @@ class Game:
         hud.draw_hud(s, self.fonts, self)
 
         # debug overlay (chapter 2): if show_debug is enabled
-        if self.features.show_debug and self.state == PLAYING:
+        if self.features.show_debug and self.state in (PLAYING, COUNTDOWN):
             hud.draw_debug_overlay(s, self.fonts, self, self.current_chapter)
 
         if self.reloading > 0:
@@ -894,17 +998,30 @@ class Game:
             except Exception:  # noqa: BLE001
                 pass
 
+        # student_loops.py error banner (chapter 4): stays a few seconds,
+        # and stays visible in pause while its timer runs
+        if self.loop_msg:
+            msg, frames = self.loop_msg
+            if frames > 0:
+                hud.draw_loop_error(s, self.fonts, msg)
+                if self.state != PAUSED:
+                    self.loop_msg = (msg, frames - 1)
+            else:
+                self.loop_msg = None
+
         if self.state == GAMEOVER:
             hud.draw_game_over(s, self.fonts, self)
         elif self.state == PAUSED:
             self._paused_copyable = hud.draw_pause(
                 s, self.fonts, self.features,
                 self.current_chapter, self._hover_zones(),
-                pygame.mouse.get_pos())
+                pygame.mouse.get_pos(),
+                set(self.slow_loops.loops) if self.slow_loops else ())
 
         if self.state == PLAYING and self.wave == 0:
             hud.text(s, self.fonts.small,
-                     t("start_hint"),
+                     t("start_hint_ch4") if self.current_chapter >= 4
+                     else t("start_hint"),
                      C.WIDTH // 2, C.HEIGHT - 26, C.GREY, center=True)
 
     def _draw_starfield(self, s):

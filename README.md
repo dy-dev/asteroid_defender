@@ -51,14 +51,17 @@ base interpreter.
 ## Ce que contient la racine
 
     asteroid_defender/
-    ├── student_config.py   ←★ LE SEUL FICHIER À REMPLIR ★
+    ├── student_config.py   ★ des valeurs, lues une fois au démarrage
+    ├── student_rules.py    ★ des règles, relues en permanence
+    ├── student_loops.py    ★ des répétitions, jouées quand un événement se déclenche
     ├── images/             visuels perso (mission bonus)
     ├── README.md           ce fichier
     ├── requirements.txt    dépendances (pygame)
     └── Core/               le moteur — VERROUILLÉ, ne pas y toucher
 
 Tout le moteur est rangé dans **Core/**, qui n'a jamais à être ouvert.
-Le seul fichier de travail est `student_config.py`, à la racine.
+Les fichiers de travail sont les trois fichiers `student_*.py`, à la
+racine.
 
 ## Trouver les noms exacts
 
@@ -70,12 +73,18 @@ actives, et donne au survol le **nom exact** à écrire dans
 Le nom doit être recopié à la lettre près — mêmes lettres, même casse,
 mêmes underscores. `nb_ammo` fonctionne, `nbAmmo` ne débloque rien.
 
+La même bulle donne aussi les états à lire dans `student_rules.py`
+(rubrique « À LIRE dans les règles ») et les événements à écrire dans
+`student_loops.py` (rubrique « RÉPÉTITIONS »).
+
 ## Commandes
 
 | Touche | Effet |
 |--------|-------|
 | ← → | déplacer le vaisseau |
 | Espace | tirer |
+| Espace maintenu | tir chargé (relâcher pour tirer) |
+| B | rafale |
 | Tab | changer d'arme |
 | Échap | carte des notions / reprendre |
 | R | rejouer (écran de fin) |
