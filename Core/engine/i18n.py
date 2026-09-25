@@ -104,6 +104,9 @@ TEXTS = {
     "debug_points_per_hit": {"fr": "points/tir", "en": "points/hit"},
     "debug_combo": {"fr": "combo", "en": "combo"},
     "debug_bonus": {"fr": "bonus actif", "en": "active bonus"},
+    "debug_charge": {"fr": "charge", "en": "charge"},
+    "debug_fired": {"fr": "tirs partis", "en": "shots fired"},
+    "debug_iterations": {"fr": "tours", "en": "turns"},
 
     # --- game over --------------------------------------------------------
     "game_over_title": {"fr": "PARTIE TERMINÉE", "en": "GAME OVER"},
@@ -121,6 +124,10 @@ TEXTS = {
         "fr": "Échap : carte des notions    ←/→ : bouger    Espace : tirer",
         "en": "Esc: concept map    ←/→: move    Space: fire",
     },
+    "start_hint_ch4": {
+        "fr": "Échap : carte des notions    ←/→ : bouger    Espace : tirer    B : rafale",
+        "en": "Esc: concept map    ←/→: move    Space: fire    B: burst",
+    },
 
     # --- pause screen -----------------------------------------------------
     "pause_title": {"fr": "PAUSE", "en": "PAUSE"},
@@ -131,6 +138,10 @@ TEXTS = {
     "pause_intro_states": {
         "fr": "Survoler un élément pour voir les états à lire dans les règles",
         "en": "Hover over an element to see the states to read in the rules",
+    },
+    "pause_intro_loops": {
+        "fr": "Survoler un élément pour voir les états à lire et les répétitions",
+        "en": "Hover over an element to see the states to read and the repetitions",
     },
     "config_problem": {
         "fr": "student_config.py : {problem}",
@@ -164,6 +175,11 @@ TEXTS = {
         "en": "Move: left / right arrows",
     },
     "help_fire": {"fr": "Tir : barre Espace", "en": "Fire: Space bar"},
+    "help_charged": {
+        "fr": "Tir chargé : maintenir Espace, puis relâcher",
+        "en": "Charged shot: hold Space, then release",
+    },
+    "help_burst": {"fr": "Rafale : touche B", "en": "Burst fire: B key"},
     "help_gold": {
         "fr": "Bonus doré : le score monte plus vite",
         "en": "Gold bonus: the score rises faster",
@@ -202,6 +218,44 @@ TEXTS = {
     "tooltip_copy_many": {
         "fr": "Chiffres du haut du clavier : copier le nom",
         "en": "Top-row digit keys: copy the name",
+    },
+    "tooltip_loops": {
+        "fr": "RÉPÉTITIONS dans student_loops.py :",
+        "en": "REPETITIONS in student_loops.py:",
+    },
+    "tooltip_provides": {"fr": "fournit : {states}", "en": "provides: {states}"},
+
+    # --- student_loops.py errors (chapter 4, red banner) ------------------
+    # {error} is the raw Python message: it stays as Python writes it.
+    "loop_banner_block": {
+        "fr": "bloc \"{name}\" ({label}) : {error}",
+        "en": "block \"{name}\" ({label}): {error}",
+    },
+    "loop_banner_footer": {
+        "fr": "Le jeu continue : seule la boucle fautive a été arrêtée.",
+        "en": "The game keeps running: only the faulty loop was stopped.",
+    },
+    "loop_error_setup": {
+        "fr": "erreur avant la boucle : {error}",
+        "en": "error before the loop: {error}",
+    },
+    "loop_error_range": {
+        "fr": "erreur dans la plage de la boucle : {error}",
+        "en": "error in the loop range: {error}",
+    },
+    "loop_error_body": {
+        "fr": "erreur dans le corps de la boucle : {error}",
+        "en": "error in the loop body: {error}",
+    },
+    "loop_error_limit": {
+        "fr": "la boucle a dépassé {limit} tours : boucle infinie ? "
+              "Le moteur l'a arrêtée.",
+        "en": "the loop went past {limit} turns: infinite loop? "
+              "The engine stopped it.",
+    },
+    "loop_error_syntax": {
+        "fr": "erreur de syntaxe ligne {line} : {msg}",
+        "en": "syntax error on line {line}: {msg}",
     },
 
     # --- startup checks (Core/main.py, printed in the console) ------------

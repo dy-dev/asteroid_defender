@@ -51,14 +51,16 @@ interpreter.
 ## What the root contains
 
     asteroid_defender/
-    ├── student_config.py   ←★ THE ONLY FILE TO FILL IN ★
+    ├── student_config.py   ★ values, read once at startup
+    ├── student_rules.py    ★ rules, read again and again during play
+    ├── student_loops.py    ★ repetitions, played when an event happens
     ├── images/             personal visuals (bonus mission)
     ├── README.md           this file
     ├── requirements.txt    dependencies (pygame)
     └── Core/               the engine — LOCKED, do not touch
 
 The whole engine lives in **Core/**, which never needs to be opened.
-The only working file is `student_config.py`, at the root.
+The working files are the three `student_*.py` files, at the root.
 
 ## Finding the exact names
 
@@ -69,12 +71,18 @@ feature, shows the ones already active, and gives on hover the
 The name must be copied letter for letter — same letters, same case,
 same underscores. `nb_ammo` works, `nbAmmo` unlocks nothing.
 
+The same tooltip also gives the states to read in `student_rules.py`
+("TO READ in the rules" section) and the events to write in
+`student_loops.py` ("REPETITIONS" section).
+
 ## Controls
 
 | Key | Effect |
 |-----|--------|
 | ← → | move the ship |
 | Space | fire |
+| Space held | charged shot (release to fire) |
+| B | burst fire |
 | Tab | switch weapon |
 | Esc | concept map / resume |
 | R | replay (end screen) |

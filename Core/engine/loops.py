@@ -8,6 +8,8 @@
 import ast
 import os
 
+from engine.i18n import t
+
 MAX_ITERATIONS = 1000
 
 
@@ -50,8 +52,9 @@ class SlowLoop:
     at a time by the engine."""
 
     def __init__(self, kind, test_code=None, body_code=None,
-                 iter_target=None, loop_var=None):
+                 iter_target=None, loop_var=None, setup_code=None):
         self.kind = kind
+        self.setup_code = setup_code
         self.test_code = test_code
         self.body_code = body_code
         self.iter_target = iter_target
@@ -69,12 +72,21 @@ class SlowLoop:
         self.error = None
         namespace["__break__"] = False
         namespace["__continue__"] = False
+        # Statements written in the event block BEFORE the loop (e.g.
+        # "countdown = 5") run once, before the first turn.
+        if self.setup_code is not None:
+            try:
+                exec(self.setup_code, namespace)
+            except Exception as e:
+                self.error = t("loop_error_setup", error=e)
+                self._stop()
+                return
         if self.kind == "for":
             try:
                 iterable = eval(self.iter_target, namespace)
                 self.iterator = iter(iterable)
             except Exception as e:
-                self.error = str(e)
+                self.error = t("loop_error_range", error=e)
                 self._stop()
 
     def step(self, namespace):
@@ -82,7 +94,7 @@ class SlowLoop:
         if self.finished or not self.active:
             return False
         if self.iterations >= MAX_ITERATIONS:
-            self.error = f"Loop exceeded {MAX_ITERATIONS} iterations (infinite loop?)"
+            self.error = t("loop_error_limit", limit=MAX_ITERATIONS)
             self._stop()
             return False
         try:
@@ -115,7 +127,7 @@ class SlowLoop:
                 return True
 
         except Exception as e:
-            self.error = f"Error in loop body: {e}"
+            self.error = t("loop_error_body", error=e)
             self._stop()
             return False
 
@@ -154,7 +166,7 @@ class SlowLoopEngine:
             tree = ast.parse(source)
         except SyntaxError as e:
             self.loops = {}
-            self._last_error = f"Syntax error line {e.lineno}: {e.msg}"
+            self._last_error = t("loop_error_syntax", line=e.lineno, msg=e.msg)
             return
 
         self._last_error = None
@@ -165,17 +177,18 @@ class SlowLoopEngine:
             event_name = self._extract_event_name(node.test)
             if event_name is None:
                 continue
+            setup = []
             for child in node.body:
-                if isinstance(child, ast.While):
-                    loop = self._make_while(child)
+                if isinstance(child, (ast.While, ast.For)):
+                    if isinstance(child, ast.While):
+                        loop = self._make_while(child)
+                    else:
+                        loop = self._make_for(child)
                     if loop:
+                        loop.setup_code = self._make_setup(setup)
                         self.loops[event_name] = loop
                     break
-                elif isinstance(child, ast.For):
-                    loop = self._make_for(child)
-                    if loop:
-                        self.loops[event_name] = loop
-                    break
+                setup.append(child)
 
     def _extract_event_name(self, test_node):
         if not isinstance(test_node, ast.Compare):
@@ -191,6 +204,18 @@ class SlowLoopEngine:
         if isinstance(comp, ast.Constant) and isinstance(comp.value, str):
             return comp.value
         return None
+
+    def _make_setup(self, stmts):
+        """Compiles the statements placed before the loop in the event
+        block (None if there are none)."""
+        if not stmts:
+            return None
+        try:
+            tree = ast.Module(body=list(stmts), type_ignores=[])
+            ast.fix_missing_locations(tree)
+            return compile(tree, self.path, "exec")
+        except Exception:
+            return None
 
     def _make_while(self, node):
         try:
@@ -241,6 +266,15 @@ class SlowLoopEngine:
     def get_error(self, event_name):
         if event_name in self.loops:
             return self.loops[event_name].error
+        return self._last_error
+
+    def iterations(self, event_name):
+        if event_name in self.loops:
+            return self.loops[event_name].iterations
+        return 0
+
+    def syntax_error(self):
+        """Syntax error of the whole file, or None."""
         return self._last_error
 
     def is_active(self, event_name):
