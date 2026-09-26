@@ -303,6 +303,23 @@ def text(surf, font, msg, x, y, color=C.WHITE, center=False):
     return rect
 
 
+# Top bar layout: gap between items, and right limit of the left part
+# (the wave text starts at C.WIDTH - 150).
+HUD_GAP = 40
+HUD_RIGHT = C.WIDTH - 150 - 20
+
+
+def _fit(font, msg, width):
+    """msg cut with an ellipsis so that it is at most `width` px wide
+    ("" when not even the ellipsis fits)."""
+    msg = str(msg)
+    if font.size(msg)[0] <= width:
+        return msg
+    while msg and font.size(msg + "…")[0] > width:
+        msg = msg[:-1]
+    return msg + "…" if font.size("…")[0] <= width else ""
+
+
 def draw_hud(surf, fonts, state):
     """Top bar: HUD text, lives, wave."""
     # Chapter 2: hud_highlight changes the look of the bar.
@@ -318,17 +335,34 @@ def draw_hud(surf, fonts, state):
     pygame.draw.rect(surf, bg, (0, 0, C.WIDTH, 34))
     pygame.draw.line(surf, line_col, (0, 34), (C.WIDTH, 34), 2)
 
-    text(surf, fonts.reg, state.hud_line, 10, 8)
+    # Left part of the bar: HUD line, then player rank and shield label
+    # (chapter 3 rule outputs). Each item starts HUD_GAP px after the
+    # measured end of the previous one and never goes past HUD_RIGHT,
+    # which keeps clear of the wave and the lives. An item that does
+    # not fit is cut with an ellipsis: the shield label first, then
+    # the rank.
+    outputs = getattr(state, "rule_outputs", {})
+    rank = str(outputs.get("player_rank", "") or "")
+    shield_lbl = str(outputs.get("shield_label", "") or "")
 
-    # player rank (chapter 3: player_rank rule output)
-    rank = getattr(state, "rule_outputs", {}).get("player_rank", "")
-    if rank:
-        text(surf, fonts.small, str(rank), 260, 11, C.AMBER)
+    line = _fit(fonts.reg, state.hud_line, HUD_RIGHT - 10)
+    x = 10 + text(surf, fonts.reg, line, 10, 8).width
 
-    # shield label (chapter 3: shield_label rule output)
-    shield_lbl = getattr(state, "rule_outputs", {}).get("shield_label", "")
-    if shield_lbl:
-        text(surf, fonts.small, str(shield_lbl), 440, 11, C.GREEN)
+    items = [(it, col) for it, col in ((rank, C.AMBER), (shield_lbl, C.GREEN)) if it]
+    ellipsis = fonts.small.size("…")[0]
+    for i, (item, col) in enumerate(items):
+        x += HUD_GAP
+        room = HUD_RIGHT - x
+        later = items[i + 1:]
+        # whole if it leaves room for the next items, or at least for
+        # their ellipsis; otherwise cut to the room left, and stop there
+        min_later = sum(HUD_GAP + ellipsis for _ in later)
+        if fonts.small.size(item)[0] > room - min_later:
+            item = _fit(fonts.small, item, room)
+            if item:
+                text(surf, fonts.small, item, x, 11, col)
+            break
+        x += text(surf, fonts.small, item, x, 11, col).width
 
     # name tease (chapter 3: name_tease rule output)
     tease = getattr(state, "rule_outputs", {}).get("name_tease", "")
