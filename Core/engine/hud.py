@@ -398,6 +398,9 @@ DEBUG_ROWS = [
     ("debug_points_per_hit", "points_per_hit", 2),
     ("debug_combo", "combo", 2),
     ("debug_bonus", "bonus_mult", 2),
+    ("debug_charge", "charge", 4),
+    ("debug_fired", "fired", 4),
+    ("debug_iterations", "iterations", 4),
 ]
 
 
@@ -425,9 +428,48 @@ def draw_debug_overlay(surf, fonts, state, current_chapter):
 
 
 def draw_countdown(surf, fonts, value):
-    label = t("countdown_go") if value <= 0 else str(value)
+    # the value comes from the student's loop: it may be a float, or
+    # something that is not a number at all
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        value = 0
+    shown = f"{value:g}" if isinstance(value, float) else str(value)
+    label = t("countdown_go") if value <= 0 else shown
     color = C.GREEN if value <= 0 else C.AMBER
     text(surf, fonts.big, label, C.WIDTH // 2, C.HEIGHT // 2, color, center=True)
+
+
+def draw_loop_error(surf, fonts, msg, footer="loop_banner_footer"):
+    """Red error banner: student_config.py problems (chapter 1+) and
+    student_loops.py errors (chapter 4: infinite loop cut by the safety
+    net, error in a loop body, syntax error). The game goes on: only the
+    faulty part is set aside. `footer`: i18n key of the last line."""
+    lines = _wrap(fonts.small, msg, C.WIDTH - 60)
+    h = 14 + 20 * len(lines) + 18
+    y = C.HEIGHT - h - 140      # above the ship and its charge bar
+    panel = pygame.Surface((C.WIDTH - 24, h), pygame.SRCALPHA)
+    panel.fill((70, 18, 18, 230))
+    surf.blit(panel, (12, y))
+    pygame.draw.rect(surf, C.RED, (12, y, C.WIDTH - 24, h), 2, border_radius=6)
+    cy = y + 8
+    for line in lines:
+        text(surf, fonts.small, line, 24, cy, (255, 170, 170))
+        cy += 20
+    text(surf, fonts.tiny, t(footer), 24, cy + 2, (220, 180, 180))
+
+
+def _wrap(font, msg, width):
+    """Splits msg into lines no wider than width (word by word)."""
+    words, lines, cur = str(msg).split(" "), [], ""
+    for word in words:
+        candidate = (cur + " " + word).strip()
+        if font.size(candidate)[0] <= width or not cur:
+            cur = candidate
+        else:
+            lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    return lines
 
 
 def draw_reloading(surf, fonts, ratio):
@@ -500,6 +542,53 @@ READABLE_STATES = [
 ]
 
 
+# ----------------------------------------------------------------------
+#  Loop events (chapter 4+): the live file student_loops.py.
+#  An event is neither a variable to create nor a state to read: it is a
+#  block to write, "if event == name:", holding one loop. Each entry:
+#    exact event name, label, states provided in the block, effect,
+#    chapter, zone
+#  Event and state names are EXACTLY those the engine uses: they are
+#  never translated.
+# ----------------------------------------------------------------------
+LOOP_EVENTS = [
+    ("countdown",
+     {"fr": "Décompte de départ", "en": "Start countdown"},
+     ("countdown",),
+     {"fr": "Fait défiler le décompte avant le début de la partie",
+      "en": "Runs the countdown before the round starts"},
+     4, "ship"),
+    ("charging",
+     {"fr": "Tir chargé", "en": "Charged shot"},
+     ("charge", "charge_rate", "max_charge"),
+     {"fr": "Fait monter la puissance du tir tant que la touche est tenue",
+      "en": "Builds up shot power while the key is held"},
+     4, "ship"),
+    ("burst",
+     {"fr": "Rafale", "en": "Burst fire"},
+     ("burst_count", "fired"),
+     {"fr": "Envoie plusieurs projectiles l'un après l'autre (touche B)",
+      "en": "Sends several projectiles one after another (B key)"},
+     4, "ship"),
+]
+
+
+def loop_event_label(name):
+    """Label of a loop event, in lower case, for the error banner."""
+    for n, label, _states, _effect, _chap, _zone in LOOP_EVENTS:
+        if n == name:
+            return pick(label).lower()
+    return name
+
+
+def loop_events(current_chapter, zone, written=()):
+    """Loop events to show for a zone, from chapter 4. An event already
+    written in student_loops.py disappears from the tooltip."""
+    return [(n, pick(label), states, pick(effect))
+            for n, label, states, effect, chap, z in LOOP_EVENTS
+            if z == zone and chap <= current_chapter and n not in written]
+
+
 def readable_states(current_chapter, zone):
     """States readable in student_rules.py for a zone, from chapter 3."""
     out = []
@@ -537,28 +626,39 @@ def visible_entries(features, current_chapter, zone):
     return todo, bonus
 
 
-def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos):
+def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos,
+               written_events=()):
     """Pause overlay, zone frames and tooltip on hover.
 
     `zones`: dict zone -> pygame.Rect (provided by game.py).
+    `written_events`: loop events already written in student_loops.py.
     """
     overlay = pygame.Surface((C.WIDTH, C.HEIGHT), pygame.SRCALPHA)
     overlay.fill((8, 10, 18, 180))
     surf.blit(overlay, (0, 0))
 
     text(surf, fonts.mid, t("pause_title"), 24, 16)
-    intro = (t("pause_intro_states") if current_chapter >= 3
-             else t("pause_intro_variables"))
+    if current_chapter >= 4:
+        intro = t("pause_intro_loops")
+    elif current_chapter >= 3:
+        intro = t("pause_intro_states")
+    else:
+        intro = t("pause_intro_variables")
     text(surf, fonts.small, intro, 24, 54, C.GREY)
 
     # error message from student_config.py, if any
     if features.problem:
-        pygame.draw.rect(surf, (60, 20, 20), (24, 80, C.WIDTH - 48, 46),
+        lines = _wrap(fonts.small, t("config_problem", problem=features.problem),
+                      C.WIDTH - 68)
+        h = 12 + 20 * len(lines) + 16
+        pygame.draw.rect(surf, (60, 20, 20), (24, 80, C.WIDTH - 48, h),
                          border_radius=4)
-        text(surf, fonts.small, t("config_problem", problem=features.problem),
-             34, 86, (255, 150, 150))
+        cy = 86
+        for line in lines:
+            text(surf, fonts.small, line, 34, cy, (255, 150, 150))
+            cy += 20
         text(surf, fonts.tiny, t("config_problem_help"),
-             34, 106, (220, 180, 180))
+             34, cy, (220, 180, 180))
 
     # frames around the hoverable zones
     hovered_zone = None
@@ -573,7 +673,7 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos):
             hovered_zone = zone
 
     # help box (controls, bonuses, reload), bottom right
-    _draw_help_panel(surf, fonts)
+    _draw_help_panel(surf, fonts, current_chapter)
 
     text(surf, fonts.small, t("resume"), 24, C.HEIGHT - 30, C.GREY)
 
@@ -581,8 +681,9 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos):
     if hovered_zone:
         todo, bonus = visible_entries(features, current_chapter, hovered_zone)
         states = readable_states(current_chapter, hovered_zone)
+        events = loop_events(current_chapter, hovered_zone, written_events)
         copyable = _draw_zone_tooltip(surf, fonts, hovered_zone, todo, bonus,
-                                      mouse_pos, states)
+                                      mouse_pos, states, events)
 
     # "copied" feedback (the game sets _copied_flash after a copy)
     flash = getattr(features, "_copied_flash", None)
@@ -599,9 +700,10 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos):
     return copyable
 
 
-def _draw_help_panel(surf, fonts):
+def _draw_help_panel(surf, fonts, current_chapter=1):
     """Help box: controls, meaning of the bonuses, automatic reload."""
-    pw, ph = 340, 214
+    ch4 = current_chapter >= 4
+    pw, ph = 340, 214 + (34 if ch4 else 0)
     px = C.WIDTH - pw - 20
     py = C.HEIGHT - ph - 20
     panel = pygame.Surface((pw, ph), pygame.SRCALPHA)
@@ -616,6 +718,14 @@ def _draw_help_panel(surf, fonts):
     lines = [
         (t("help_move"), C.WHITE),
         (t("help_fire"), C.WHITE),
+    ]
+    if ch4:
+        lines += [
+            (t("help_charged"), C.WHITE),
+            (t("help_burst"), C.WHITE),
+        ]
+    first_bonus = len(lines) + 1
+    lines += [
         ("", C.WHITE),
         (t("help_gold"), None),    # None -> gold dot
         (t("help_cyan"), None),    # None -> cyan dot
@@ -624,8 +734,9 @@ def _draw_help_panel(surf, fonts):
         (t("help_shield"), C.GREY),
         (t("help_magazine"), C.GREY),
     ]
-    dot_colors = {3: C.COLOR_NAMES["gold"], 4: C.COLOR_NAMES["cyan"],
-                  5: C.COLOR_NAMES["green"]}
+    dot_colors = {first_bonus: C.COLOR_NAMES["gold"],
+                  first_bonus + 1: C.COLOR_NAMES["cyan"],
+                  first_bonus + 2: C.COLOR_NAMES["green"]}
     for i, (line, col) in enumerate(lines):
         if not line:
             y += 8
@@ -639,13 +750,16 @@ def _draw_help_panel(surf, fonts):
         y += 17
 
 
-def _draw_zone_tooltip(surf, fonts, zone, todo, bonus, mouse_pos, states=None):
-    """Tooltip of a zone. Two kinds of lines:
+def _draw_zone_tooltip(surf, fonts, zone, todo, bonus, mouse_pos, states=None,
+                       events=None):
+    """Tooltip of a zone. Three kinds of lines:
       - the variables to write (todo/bonus, chapters 1 and 2);
-      - the states to read in student_rules.py (states, chapter 3+).
-    Returns the ordered list of copyable names (variables, then states),
-    so that keys 1..9 copy the matching name."""
+      - the states to read in student_rules.py (states, chapter 3+);
+      - the loop events to write in student_loops.py (events, chapter 4+).
+    Returns the ordered list of copyable names (variables, states, then
+    events), so that keys 1..9 copy the matching name."""
     states = states or []
+    events = events or []
 
     lines = []          # (text, color, font)
     lines.append((zone_label(zone), C.AMBER, fonts.small))
@@ -669,6 +783,16 @@ def _draw_zone_tooltip(surf, fonts, zone, todo, bonus, mouse_pos, states=None):
             copyable.append(name)
             lines.append((f"{len(copyable)}. {name}", C.WHITE, fonts.reg))
             lines.append((f"   {sense}", C.GREY, fonts.tiny))
+
+    # 3) loop events to write in student_loops.py (chapter 4+)
+    if events:
+        lines.append((t("tooltip_loops"), C.VIOLET, fonts.tiny))
+        for name, label, ev_states, effect in events:
+            copyable.append(name)
+            lines.append((f"{len(copyable)}. {name}", C.WHITE, fonts.reg))
+            lines.append((f"   {label} · {effect}", C.GREY, fonts.tiny))
+            lines.append(("   " + t("tooltip_provides", states=", ".join(ev_states)),
+                          C.GREY, fonts.tiny))
 
     if not copyable:
         lines.append((t("tooltip_all_done"), C.GREEN, fonts.small))
