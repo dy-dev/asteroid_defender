@@ -58,9 +58,10 @@ class Game:
         self.last_charge = 0        # charge reached by the last charged shot
         self.last_fired = 0         # value of fired at the end of the last burst
         self.loop_turns = 0         # turns done by the loop currently / last run
-        self.loop_msg = None        # (text, frames) error banner for student_loops.py
+        self.loop_msg = None        # (text, frames, footer) red error banner
         self.repair_active = False
         self.reset()
+        self._show_config_problems()
 
     # ------------------------------------------------------------------
     def _load_chapter(self):
@@ -160,7 +161,9 @@ class Game:
             self.countdown_student = False
             self.countdown_frames = 0
 
-        self.hud_line = ""
+        # filled at once: the top bar shows the name from the first frame,
+        # countdown included
+        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo)
         self.game_over_line = ""
 
     def _start_position(self):
@@ -205,6 +208,7 @@ class Game:
             elif event.key == pygame.K_r and self.state in (GAMEOVER, FROZEN):
                 self.features = StudentFeatures().load()
                 self.reset()
+                self._show_config_problems()
             elif event.key == pygame.K_TAB and self.state == PLAYING:
                 self._cycle_weapon()
             elif event.key == pygame.K_b and self.state == PLAYING:
@@ -549,7 +553,18 @@ class Game:
         return False
 
     def _show_loop_msg(self, msg):
-        self.loop_msg = (f"student_loops.py · {msg}", LOOP_MSG_FRAMES)
+        self.loop_msg = (f"student_loops.py · {msg}", LOOP_MSG_FRAMES,
+                         "loop_banner_footer")
+
+    def _show_config_problems(self):
+        """Every chapter: problems of student_config.py shown in the red
+        banner at launch and at each restart (not only in pause)."""
+        problems = self.features.problems
+        if problems:
+            msg = "student_config.py · " + "  |  ".join(problems[:3])
+            if len(problems) > 3:
+                msg += " " + t("config_more", n=len(problems) - 3)
+            self.loop_msg = (msg, LOOP_MSG_FRAMES, "config_banner_footer")
 
     def _update_bullets(self):
         for b in self.bullets:
@@ -1001,14 +1016,14 @@ class Game:
             except Exception:  # noqa: BLE001
                 pass
 
-        # student_loops.py error banner (chapter 4): stays a few seconds,
-        # and stays visible in pause while its timer runs
+        # red error banner (student_config.py problems, student_loops.py
+        # errors): stays a few seconds, frozen in pause while it runs
         if self.loop_msg:
-            msg, frames = self.loop_msg
+            msg, frames, footer = self.loop_msg
             if frames > 0:
-                hud.draw_loop_error(s, self.fonts, msg)
+                hud.draw_loop_error(s, self.fonts, msg, footer)
                 if self.state != PAUSED:
-                    self.loop_msg = (msg, frames - 1)
+                    self.loop_msg = (msg, frames - 1, footer)
             else:
                 self.loop_msg = None
 
