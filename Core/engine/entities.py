@@ -41,6 +41,13 @@ class Ship:
         cx, cy = int(self.x), int(self.y)
         image = assets.load(sprite, (C.SHIP_W, C.SHIP_H))
         if image is not None:
+            if body_color:
+                # halo: a picture cannot be recolored, so a translucent
+                # disc of the glow color is drawn behind it
+                r = max(C.SHIP_W, C.SHIP_H) // 2 + 8
+                halo = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+                pygame.draw.circle(halo, (*body_color[:3], 110), (r, r), r)
+                surf.blit(halo, (cx - r, cy - r))
             assets.blit_centered(surf, image, cx, cy)
             if thrust:
                 pygame.draw.polygon(surf, C.ORANGE, [
