@@ -8,9 +8,13 @@ degraded default behavior takes over, so the game always runs, even
 with an empty file.
 """
 
-import importlib
+import ast
+import io
+import os
+import re
 import sys
-import traceback
+import tokenize
+import types
 
 from engine import config as C
 from engine.i18n import t
@@ -20,27 +24,114 @@ from engine.i18n import t
 #  Tolerant import of the student file
 # ----------------------------------------------------------------------
 
+# Game states: they exist in student_rules.py (chapter 3), never in the
+# configuration. Using one in student_config.py means a condition was
+# written in the wrong file.
+GAME_STATES = ("lives", "ammo", "score", "shield", "combo", "active_bonus",
+               "player_name")
+MAX_SYNTAX_FIXES = 20
+# loader.py is in Core/engine/: student_config.py is two levels above
+CONFIG_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "student_config.py")
+
+
 def import_student_config():
-    """Imports student_config.py without ever crashing the game.
+    """Runs student_config.py without ever crashing the game.
 
-    On any error, the game starts in degraded mode and shows the problem
-    (line number and faulty line) on the pause screen.
+    The file is run statement by statement: a faulty statement is
+    skipped and the others still apply. A line Python cannot read at all
+    (syntax error) is set aside, with the block it opens, and the rest
+    of the file is read again. Returns (module, problems): problems is
+    the list of messages, one per skipped part, in file order.
     """
-    problem = None
-    module = None
+    module = types.ModuleType("student_config")
+    problems = []
+    path = CONFIG_PATH
+    if not os.path.isfile(path):
+        return module, problems
+    module.__file__ = path
     try:
-        if "student_config" in sys.modules:
-            module = importlib.reload(sys.modules["student_config"])
-        else:
-            module = importlib.import_module("student_config")
-    except SyntaxError as exc:
-        problem = t("error_syntax", line=exc.lineno, code=_short(exc.text))
-    except Exception as exc:  # noqa: BLE001 - every error must be caught
-        problem = _runtime_problem(exc)
+        with open(path, encoding="utf-8-sig") as fh:
+            lines = fh.read().split("\n")
+    except Exception as exc:  # noqa: BLE001 - unreadable file
+        problems.append(t("error_runtime_noline", kind=type(exc).__name__))
+        return module, problems
 
-    if module is None:
-        module = type(sys)("student_config_empty")
-    return module, problem
+    tree = None
+    for _ in range(MAX_SYNTAX_FIXES):
+        try:
+            tree = ast.parse("\n".join(lines), path)
+            break
+        except SyntaxError as exc:
+            idx = _faulty_index(exc, lines)
+            if idx is None:
+                problems.append((exc.lineno or 0, t(
+                    "error_syntax", line=exc.lineno or "?", msg=exc.msg, code="")))
+                break
+            code = lines[idx]
+            problems.append((idx + 1, _with_hint(
+                t("error_syntax", line=idx + 1, msg=exc.msg, code=_short(code)),
+                code)))
+            _set_aside(lines, idx)
+    if tree is None:
+        return module, _in_file_order(problems)
+
+    sys.modules["student_config"] = module
+    for node in tree.body:
+        stmt = ast.Module(body=[node], type_ignores=[])
+        try:
+            exec(compile(stmt, path, "exec"), module.__dict__)
+        except Exception as exc:  # noqa: BLE001 - every error must be caught
+            problems.append((node.lineno, _runtime_problem(exc, node, lines)))
+    return module, _in_file_order(problems)
+
+
+def _faulty_index(exc, lines):
+    """Index of the line to set aside for a syntax error, or None when
+    no line can be blamed. A block opened without a body is reported
+    by Python on the next line ("expected an indented block after 'if'
+    statement on line N"): the line to set aside is then line N."""
+    found = re.search(r"on line (\d+)", str(exc.msg or ""))
+    line = int(found.group(1)) if found else exc.lineno
+    if not line or line > len(lines) or not lines[line - 1].strip():
+        return None
+    return line - 1
+
+
+def _set_aside(lines, idx):
+    """Blanks line idx and, when it opens a block (ends with ":"), the
+    more indented lines under it."""
+    head = lines[idx]
+    lines[idx] = ""
+    if not head.rstrip().endswith(":"):
+        return
+    indent = len(head) - len(head.lstrip())
+    j = idx + 1
+    while j < len(lines):
+        line = lines[j]
+        if line.strip() and len(line) - len(line.lstrip()) <= indent:
+            break
+        lines[j] = ""
+        j += 1
+
+
+def _in_file_order(problems):
+    """Messages of (line, message) pairs, sorted by line."""
+    return [msg for _, msg in sorted(problems, key=lambda p: p[0])]
+
+
+def _with_hint(msg, code):
+    """Adds the pointer to student_rules.py when the faulty line uses a
+    game state (a condition written in the wrong file)."""
+    try:
+        names = {tok.string for tok in tokenize.generate_tokens(io.StringIO(code).readline)
+                 if tok.type == tokenize.NAME}
+    except Exception:  # noqa: BLE001 - half-written line
+        names = set(code.replace("(", " ").replace(")", " ").split())
+    if names & set(GAME_STATES):
+        return msg + " — " + t("config_hint_rules")
+    return msg
 
 
 def _short(code, limit=48):
@@ -57,18 +148,22 @@ def display_name(name, limit=16):
     return name if len(name) <= limit else name[:limit - 1] + "…"
 
 
-def _runtime_problem(exc):
-    """Message for an error raised while running student_config.py:
-    the line and the error type, never Python's English sentence."""
+def _runtime_problem(exc, node, lines):
+    """Message for a statement of student_config.py that raised: its
+    line, the error type, the faulty code, and for an unknown name the
+    name itself (plus the pointer to student_rules.py for a game state).
+    Python's own sentence stays out: the name says more to a beginner."""
     kind = type(exc).__name__
-    try:
-        frames = [fr for fr in traceback.extract_tb(exc.__traceback__)
-                  if fr.filename.endswith("student_config.py")]
-    except Exception:  # noqa: BLE001
-        frames = []
-    if frames:
-        last = frames[-1]
-        return t("error_runtime", line=last.lineno, kind=kind, code=_short(last.line))
+    line = getattr(node, "lineno", None)
+    code = lines[line - 1] if line and line <= len(lines) else ""
+    name = getattr(exc, "name", None) if isinstance(exc, NameError) else None
+    if name:
+        msg = t("error_name", line=line, name=name, code=_short(code))
+        if name in GAME_STATES:
+            msg += " — " + t("config_hint_rules")
+        return msg
+    if line:
+        return t("error_runtime", line=line, kind=kind, code=_short(code))
     return t("error_runtime_noline", kind=kind)
 
 
@@ -171,6 +266,7 @@ class StudentFeatures:
     def __init__(self):
         self.cfg = None
         self.problem = None
+        self.problems = []
         self.unlocked = {}
 
     # -- utilitaires internes -------------------------------------------------
@@ -186,7 +282,13 @@ class StudentFeatures:
 
     # -- chargement -----------------------------------------------------------
     def load(self):
-        self.cfg, self.problem = import_student_config()
+        self.cfg, self.problems = import_student_config()
+        # first problem for the pause screen, with the count of the others
+        self.problem = None
+        if self.problems:
+            self.problem = self.problems[0]
+            if len(self.problems) > 1:
+                self.problem += " " + t("config_more", n=len(self.problems) - 1)
         cfg = self.cfg
 
         # --- first variables ----------------------------
