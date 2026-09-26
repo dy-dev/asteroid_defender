@@ -68,12 +68,12 @@ TEXTS = {
         "en": "??? (to be set)",
     },
     "default_hud_line": {
-        "fr": "Score : {score}   Munitions : {ammo}",
-        "en": "Score: {score}   Ammo: {ammo}",
+        "fr": "{name}   Score : {score}   Munitions : {ammo}",
+        "en": "{name}   Score: {score}   Ammo: {ammo}",
     },
     "default_game_over_line": {
-        "fr": "Partie terminée — score : {score}",
-        "en": "Game over — score: {score}",
+        "fr": "{name} — Partie terminée — score : {score}",
+        "en": "{name} — Game over — score: {score}",
     },
 
     # --- catalog types ----------------------------------------------------
