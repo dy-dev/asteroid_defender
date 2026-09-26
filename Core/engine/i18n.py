@@ -148,14 +148,29 @@ TEXTS = {
         "en": "student_config.py: {problem}",
     },
     "config_problem_help": {
-        "fr": "Le jeu continue en ignorant la ligne fautive, pour ne pas bloquer. "
+        "fr": "Le jeu continue en ignorant les lignes fautives, pour ne pas bloquer. "
               "L'erreur reste à corriger.",
-        "en": "The game keeps running and ignores the faulty line. "
+        "en": "The game keeps running and ignores the faulty lines. "
               "The error still needs fixing.",
     },
+    "config_more": {"fr": "(+{n} autre(s))", "en": "(+{n} more)"},
+    "config_banner_footer": {
+        "fr": "Le jeu continue : seules les lignes fautives sont ignorées. "
+              "Détail en pause (Échap).",
+        "en": "The game keeps running: only the faulty lines are ignored. "
+              "Details in pause (Esc).",
+    },
+    "config_hint_rules": {
+        "fr": "une condition s'écrit dans student_rules.py, pas dans la configuration",
+        "en": "a condition goes in student_rules.py, not in the configuration",
+    },
     "error_syntax": {
-        "fr": "erreur de syntaxe ligne {line} : {code}",
-        "en": "syntax error on line {line}: {code}",
+        "fr": "erreur de syntaxe ligne {line} ({msg}) : {code}",
+        "en": "syntax error on line {line} ({msg}): {code}",
+    },
+    "error_name": {
+        "fr": "ligne {line} : nom inconnu « {name} » : {code}",
+        "en": "line {line}: unknown name '{name}': {code}",
     },
     "error_runtime": {
         "fr": "erreur ligne {line} ({kind}) : {code}",
