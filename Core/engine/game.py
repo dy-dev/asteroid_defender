@@ -192,8 +192,11 @@ class Game:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 if self.state == PAUSED:
-                    self.state = PLAYING
+                    # back to the state paused from: a countdown in
+                    # progress goes on where it stopped
+                    self.state = getattr(self, "resume_state", PLAYING)
                 elif self.state in (PLAYING, COUNTDOWN):
+                    self.resume_state = self.state
                     self.state = PAUSED
                 else:
                     return False
