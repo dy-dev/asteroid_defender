@@ -49,6 +49,14 @@ def _short(code, limit=48):
     return code if len(code) <= limit else code[:limit - 3] + "..."
 
 
+def display_name(name, limit=16):
+    """Player name as shown on screen: cut to `limit` characters, the
+    last one being an ellipsis. The value given to the rules is not
+    affected."""
+    name = str(name)
+    return name if len(name) <= limit else name[:limit - 1] + "…"
+
+
 def _runtime_problem(exc):
     """Message for an error raised while running student_config.py:
     the line and the error type, never Python's English sentence."""
@@ -303,12 +311,14 @@ class StudentFeatures:
         return bool(value) if ok else default
 
     def hud(self, name, score, ammo):
-        default = t("default_hud_line", score=score, ammo=ammo)
+        default = t("default_hud_line", name=display_name(name),
+                    score=score, ammo=ammo)
         value, ok = safe_call(self.cfg, "hud_text", default, name, score, ammo)
         return str(value) if ok else default
 
     def game_over(self, name, score):
-        default = t("default_game_over_line", score=score)
+        default = t("default_game_over_line", name=display_name(name),
+                    score=score)
         value, ok = safe_call(self.cfg, "game_over_text", default, name, score)
         return str(value) if ok else default
 
