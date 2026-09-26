@@ -438,10 +438,11 @@ def draw_countdown(surf, fonts, value):
     text(surf, fonts.big, label, C.WIDTH // 2, C.HEIGHT // 2, color, center=True)
 
 
-def draw_loop_error(surf, fonts, msg):
-    """Chapter 4: error banner for student_loops.py (infinite loop cut by
-    the safety net, error in a loop body, syntax error). The game goes
-    on: the faulty loop is simply stopped."""
+def draw_loop_error(surf, fonts, msg, footer="loop_banner_footer"):
+    """Red error banner: student_config.py problems (chapter 1+) and
+    student_loops.py errors (chapter 4: infinite loop cut by the safety
+    net, error in a loop body, syntax error). The game goes on: only the
+    faulty part is set aside. `footer`: i18n key of the last line."""
     lines = _wrap(fonts.small, msg, C.WIDTH - 60)
     h = 14 + 20 * len(lines) + 18
     y = C.HEIGHT - h - 140      # above the ship and its charge bar
@@ -453,7 +454,7 @@ def draw_loop_error(surf, fonts, msg):
     for line in lines:
         text(surf, fonts.small, line, 24, cy, (255, 170, 170))
         cy += 20
-    text(surf, fonts.tiny, t("loop_banner_footer"), 24, cy + 2, (220, 180, 180))
+    text(surf, fonts.tiny, t(footer), 24, cy + 2, (220, 180, 180))
 
 
 def _wrap(font, msg, width):
@@ -647,12 +648,17 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos,
 
     # error message from student_config.py, if any
     if features.problem:
-        pygame.draw.rect(surf, (60, 20, 20), (24, 80, C.WIDTH - 48, 46),
+        lines = _wrap(fonts.small, t("config_problem", problem=features.problem),
+                      C.WIDTH - 68)
+        h = 12 + 20 * len(lines) + 16
+        pygame.draw.rect(surf, (60, 20, 20), (24, 80, C.WIDTH - 48, h),
                          border_radius=4)
-        text(surf, fonts.small, t("config_problem", problem=features.problem),
-             34, 86, (255, 150, 150))
+        cy = 86
+        for line in lines:
+            text(surf, fonts.small, line, 34, cy, (255, 150, 150))
+            cy += 20
         text(surf, fonts.tiny, t("config_problem_help"),
-             34, 106, (220, 180, 180))
+             34, cy, (220, 180, 180))
 
     # frames around the hoverable zones
     hovered_zone = None
