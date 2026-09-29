@@ -392,11 +392,13 @@ def draw_hud(surf, fonts, state):
     if weapon_lbl:
         text(surf, fonts.small, weapon_lbl, x + HUD_GAP, 11, C.BLUE)
 
-    # name tease (chapter 3: name_tease rule output)
+    # name tease (chapter 3: name_tease rule output), right under the
+    # bar on the right: clear of the reload bar at the bottom and of the
+    # centered ammo alerts
     tease = getattr(state, "rule_outputs", {}).get("name_tease", "")
     if tease:
         tw = fonts.tiny.size(str(tease))[0]
-        text(surf, fonts.tiny, str(tease), (C.WIDTH - tw) // 2, C.HEIGHT - 44, C.GREY)
+        text(surf, fonts.tiny, str(tease), C.WIDTH - tw - 10, 42, C.GREY)
 
     # lives, on the right
     for i in range(max(0, state.ship.lives)):
