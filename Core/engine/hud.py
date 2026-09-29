@@ -133,13 +133,15 @@ CATALOG = [
     ("difficulty_level",
      {"fr": "Paliers de difficulté", "en": "Difficulty tiers"},
      "function",
-     {"fr": "La difficulté s'adapte au score", "en": "The difficulty adapts to the score"},
-     99, "field"),
+     {"fr": "La difficulté s'adapte au score",
+      "en": "The difficulty adapts to the score"},
+     6, "field"),
     ("spawn_row",
-     {"fr": "Formations d'ennemis", "en": "Enemy formations"},
+     {"fr": "Formation d'ennemis", "en": "Enemy formation"},
      "function",
-     {"fr": "Les ennemis arrivent en rangées", "en": "Enemies arrive in rows"},
-     99, "field"),
+     {"fr": "Positions des ennemis d'une même vague",
+      "en": "Positions of the enemies of one wave"},
+     6, "field"),
     ("reload_time",
      {"fr": "Temps de rechargement", "en": "Reload time"},
      "variable",
@@ -153,43 +155,63 @@ CATALOG = [
     ("should_keep_firing",
      {"fr": "Autorisation de tir", "en": "Fire permission"},
      "function",
-     {"fr": "Décide quand le tir est permis", "en": "Decides when firing is allowed"},
-     99, "ship"),
+     {"fr": "Décide quand le tir est autorisé",
+      "en": "Decides when firing is allowed"},
+     6, "ship"),
     ("hud_text",
-     {"fr": "Texte du HUD", "en": "HUD text"},
+     {"fr": "Texte du bandeau", "en": "HUD text"},
      "function",
-     {"fr": "Compose la ligne d'infos en haut", "en": "Builds the information line at the top"},
-     99, "hud"),
+     {"fr": "Compose la ligne d'information du haut de l'écran",
+      "en": "Builds the information line at the top of the screen"},
+     6, "hud"),
     ("game_over_text",
      {"fr": "Texte de fin", "en": "End text"},
      "function",
-     {"fr": "Le message de l'écran de fin", "en": "The message of the end screen"},
-     99, "hud"),
+     {"fr": "Compose le message de l'écran de fin de partie",
+      "en": "Builds the message of the game-over screen"},
+     6, "hud"),
     ("powerup_colors",
-     {"fr": "Couleurs des bonus", "en": "Bonus colors"},
+     {"fr": "Couleurs des bonus de soin", "en": "Healing bonus colours"},
      "variable",
-     {"fr": "Colore les power-ups", "en": "Colors the power-ups"},
-     99, "field"),
+     {"fr": "Des bonus de soin de ces couleurs tombent des astéroïdes détruits",
+      "en": "Healing bonuses in these colours drop from destroyed asteroids"},
+     5, "field"),
+    ("powerup_effects",
+     {"fr": "Effets des bonus", "en": "Bonus effects"},
+     "variable",
+     {"fr": "Associe un effet à chaque couleur de bonus",
+      "en": "Gives each bonus colour an effect"},
+     5, "field"),
     ("start_position",
-     {"fr": "Position de départ", "en": "Start position"},
+     {"fr": "Position de départ", "en": "Starting position"},
      "variable",
-     {"fr": "Où le vaisseau apparaît", "en": "Where the ship appears"},
-     99, "ship"),
+     {"fr": "Point de départ du vaisseau, fixé pour la partie",
+      "en": "Where the ship starts, fixed for the round"},
+     5, "ship"),
     ("weapons",
      {"fr": "Armes disponibles", "en": "Available weapons"},
      "variable",
-     {"fr": "Plusieurs armes sélectionnables", "en": "Several selectable weapons"},
-     99, "ship"),
+     {"fr": "Plusieurs armes, chacune avec ses dégâts et sa cadence ; Tab pour changer",
+      "en": "Several weapons, each with its own damage and fire rate; Tab to switch"},
+     5, "ship"),
+    ("unlocked_weapons",
+     {"fr": "Armes accessibles", "en": "Unlocked weapons"},
+     "variable",
+     {"fr": "Limite les armes utilisables à celles de l'ensemble",
+      "en": "Limits usable weapons to those in the set"},
+     5, "ship"),
     ("damage",
      {"fr": "Calcul des dégâts", "en": "Damage calculation"},
      "function",
-     {"fr": "Paramètre les dégâts infligés", "en": "Sets the damage dealt"},
-     99, "ship"),
+     {"fr": "Fixe les dégâts infligés",
+      "en": "Sets the damage dealt"},
+     6, "ship"),
     ("spawn_pattern",
      {"fr": "Composition des vagues", "en": "Wave composition"},
      "function",
-     {"fr": "Nombre et vitesse par vague", "en": "Number and speed for each wave"},
-     99, "field"),
+     {"fr": "Nombre et vitesse des ennemis de chaque vague",
+      "en": "Number and speed of the enemies of each wave"},
+     6, "field"),
     ("GLOBAL_DIFFICULTY",
      {"fr": "Difficulté globale", "en": "Overall difficulty"},
      "variable",
@@ -221,6 +243,30 @@ CATALOG = [
      {"fr": "Affiche les meilleurs scores", "en": "Shows the high scores"},
      99, "hud"),
 ]
+
+# Functions of the catalog (chapter 6+): the tooltip shows the full
+# signature and what the function returns. Without the parameters, a
+# function cannot be written.
+FUNCTION_SIGNATURES = {
+    "hud_text": ("hud_text(name, score, ammo)",
+                 {"fr": "renvoie un texte", "en": "returns a string"}),
+    "game_over_text": ("game_over_text(name, score)",
+                       {"fr": "renvoie un texte", "en": "returns a string"}),
+    "difficulty_level": ("difficulty_level(score)",
+                         {"fr": 'renvoie "easy", "normal" ou "hard"',
+                          "en": 'returns "easy", "normal" or "hard"'}),
+    "should_keep_firing": ("should_keep_firing(ammo, trigger_held)",
+                           {"fr": "renvoie un booléen", "en": "returns a boolean"}),
+    "damage": ("damage(base, multiplier=1.0)",
+               {"fr": "renvoie un nombre", "en": "returns a number"}),
+    "spawn_pattern": ("spawn_pattern(wave)",
+                      {"fr": "renvoie un couple (nombre, vitesse)",
+                       "en": "returns a pair (count, speed)"}),
+    "spawn_row": ("spawn_row(n)",
+                  {"fr": "renvoie une liste d'abscisses",
+                   "en": "returns a list of x positions"}),
+}
+
 
 # Visual bonus missions. Each one appears from the chapter where the
 # element it decorates is in play, then follows the same rules as the
@@ -320,6 +366,18 @@ def _fit(font, msg, width):
     return msg + "…" if font.size("…")[0] <= width else ""
 
 
+WEAPON_LINE_Y = 40      # second line under the top bar (active weapon)
+
+
+def weapon_label(state):
+    """Chapter 5+: "arme : <name>" once weapons is written, else ""."""
+    features = getattr(state, "features", None)
+    if (getattr(state, "current_chapter", 1) >= 5 and features is not None
+            and features.unlocked.get("weapons")):
+        return t("hud_weapon", name=state.weapon_name)
+    return ""
+
+
 def draw_hud(surf, fonts, state):
     """Top bar: HUD text, lives, wave."""
     # Chapter 2: hud_highlight changes the look of the bar.
@@ -344,15 +402,20 @@ def draw_hud(surf, fonts, state):
     outputs = getattr(state, "rule_outputs", {})
     rank = str(outputs.get("player_rank", "") or "")
     shield_lbl = str(outputs.get("shield_label", "") or "")
+    right = HUD_RIGHT
 
-    line = _fit(fonts.reg, state.hud_line, HUD_RIGHT - 10)
+    line = _fit(fonts.reg, state.hud_line, right - 10)
     x = 10 + text(surf, fonts.reg, line, 10, 8).width
 
-    items = [(it, col) for it, col in ((rank, C.AMBER), (shield_lbl, C.GREEN)) if it]
+    # the shield label takes the shield_color of the rules when it is a
+    # known color name, green otherwise
+    shield_name = str(outputs.get("shield_color", "") or "").lower().strip()
+    shield_col = C.COLOR_NAMES.get(shield_name, C.GREEN)
+    items = [(it, col) for it, col in ((rank, C.AMBER), (shield_lbl, shield_col)) if it]
     ellipsis = fonts.small.size("…")[0]
     for i, (item, col) in enumerate(items):
         x += HUD_GAP
-        room = HUD_RIGHT - x
+        room = right - x
         later = items[i + 1:]
         # whole if it leaves room for the next items, or at least for
         # their ellipsis; otherwise cut to the room left, and stop there
@@ -360,15 +423,23 @@ def draw_hud(surf, fonts, state):
         if fonts.small.size(item)[0] > room - min_later:
             item = _fit(fonts.small, item, room)
             if item:
-                text(surf, fonts.small, item, x, 11, col)
+                x += text(surf, fonts.small, item, x, 11, col).width
             break
         x += text(surf, fonts.small, item, x, 11, col).width
 
-    # name tease (chapter 3: name_tease rule output)
+    # Chapter 5: name of the active weapon, on a second line under the
+    # bar, so that it never cuts the rank or the shield label
+    weapon_lbl = weapon_label(state)
+    if weapon_lbl:
+        text(surf, fonts.small, weapon_lbl, 10, WEAPON_LINE_Y, C.BLUE)
+
+    # name tease (chapter 3: name_tease rule output), right under the
+    # bar on the right: clear of the reload bar at the bottom and of the
+    # centered ammo alerts
     tease = getattr(state, "rule_outputs", {}).get("name_tease", "")
     if tease:
         tw = fonts.tiny.size(str(tease))[0]
-        text(surf, fonts.tiny, str(tease), (C.WIDTH - tw) // 2, C.HEIGHT - 44, C.GREY)
+        text(surf, fonts.tiny, str(tease), C.WIDTH - tw - 10, 42, C.GREY)
 
     # lives, on the right
     for i in range(max(0, state.ship.lives)):
@@ -401,6 +472,10 @@ DEBUG_ROWS = [
     ("debug_charge", "charge", 4),
     ("debug_fired", "fired", 4),
     ("debug_iterations", "iterations", 4),
+    ("debug_damage", "last_damage", 5),
+    ("debug_colours", "powerup_colors", 5),
+    ("debug_wave", "wave", 6),
+    ("debug_difficulty", "difficulty", 6),
 ]
 
 
@@ -414,6 +489,8 @@ def draw_debug_overlay(surf, fonts, state, current_chapter):
     w = 210
     h = pad * 2 + len(rows) * 22 + 22
     x, y = 10, 44
+    if weapon_label(state):
+        y = 62      # leaves the weapon line under the top bar visible
     panel = pygame.Surface((w, h), pygame.SRCALPHA)
     panel.fill((14, 21, 32, 210))
     surf.blit(panel, (x, y))
@@ -638,7 +715,9 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos,
     surf.blit(overlay, (0, 0))
 
     text(surf, fonts.mid, t("pause_title"), 24, 16)
-    if current_chapter >= 4:
+    if current_chapter >= 6:
+        intro = t("pause_intro_functions")
+    elif current_chapter >= 4:
         intro = t("pause_intro_loops")
     elif current_chapter >= 3:
         intro = t("pause_intro_states")
@@ -767,6 +846,8 @@ def _draw_zone_tooltip(surf, fonts, zone, todo, bonus, mouse_pos, states=None,
     copyable = []       # copyable names, in display order
 
     # 1) variables to write
+    functions = [e for e in todo if e[0] in FUNCTION_SIGNATURES]
+    todo = [e for e in todo if e[0] not in FUNCTION_SIGNATURES]
     for name, label, kind, effect, is_bonus in todo:
         copyable.append(name)
         lines.append((f"{len(copyable)}. {name}", C.WHITE, fonts.reg))
@@ -775,6 +856,16 @@ def _draw_zone_tooltip(surf, fonts, zone, todo, bonus, mouse_pos, states=None,
         copyable.append(name)
         lines.append((f"{len(copyable)}. {name}  {t('tooltip_bonus_tag')}", C.VIOLET, fonts.reg))
         lines.append((f"   {kind} · {effect}", C.GREY, fonts.tiny))
+
+    # 1 bis) functions to write (chapter 6+): signature and return value
+    if functions:
+        lines.append((t("tooltip_functions"), C.GREEN, fonts.tiny))
+        for name, label, kind, effect, is_bonus in functions:
+            signature, returns = FUNCTION_SIGNATURES[name]
+            copyable.append(name)
+            lines.append((f"{len(copyable)}. {signature} → {pick(returns)}",
+                          C.WHITE, fonts.reg))
+            lines.append((f"   {label} · {effect}", C.GREY, fonts.tiny))
 
     # 2) states to read in student_rules.py (chapter 3+)
     if states:
