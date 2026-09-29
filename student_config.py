@@ -1,3 +1,6 @@
+# Convention : les import se placent en tête de fichier.
+import random
+
 # =====================================================================
 #  student_config.py
 #
@@ -47,11 +50,13 @@
 #  fichier.
 # =====================================================================
 
-# titre affiché en haut de la fenêtre
-window_title = "Asteroid Defender"
-
 # nom affiché dans le HUD
-player_name = "Nova"
+# Le texte est une suite de caractères : on en prend une portion.
+full_name = "Nova Starfighter"
+player_name = full_name[:4]
+
+# titre affiché en haut de la fenêtre
+window_title = f"Asteroid Defender - pilote {player_name}"
 
 # nombre de munitions : le vaisseau peut tirer
 nb_ammo = 40
@@ -97,3 +102,33 @@ bonus_threshold = 500
 
 # durée du multiplicateur, en secondes
 bonus_duration = 5.0
+
+# --- Chapitre 5 : les collections et le hasard ---------------------------
+
+# Une liste : les couleurs des bonus qui tombent en jeu.
+powerup_colors = ["red", "blue", "green"]
+powerup_colors.append("pink")
+
+# Un dictionnaire simple : l'effet de chaque couleur de bonus.
+# Une couleur absente du dictionnaire donne un bonus qui rend une vie.
+powerup_effects = {
+    "red": "heal",
+    "blue": "ammo_refill",
+    "green": "shield_up",
+}
+powerup_effects["pink"] = "rapid_fire"
+
+# Un dictionnaire de dictionnaires : chaque arme associée à ses caractéristiques.
+# Touche Tab pour passer d'une arme à l'autre.
+weapons = {
+    "laser": {"damage": 1, "cooldown": 8},
+    "canon": {"damage": 3, "cooldown": 30},
+    "mitraille": {"damage": 1, "cooldown": 3},
+}
+
+# Un ensemble : les armes accessibles, sans doublon possible.
+unlocked_weapons = {"laser", "canon"}
+
+# Un tuple : la position de départ, qui ne doit pas changer.
+# L'abscisse est tirée au hasard à chaque lancement.
+start_position = (random.randint(100, 700), 510)
