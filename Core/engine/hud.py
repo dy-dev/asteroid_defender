@@ -366,6 +366,18 @@ def _fit(font, msg, width):
     return msg + "…" if font.size("…")[0] <= width else ""
 
 
+WEAPON_LINE_Y = 40      # second line under the top bar (active weapon)
+
+
+def weapon_label(state):
+    """Chapter 5+: "arme : <name>" once weapons is written, else ""."""
+    features = getattr(state, "features", None)
+    if (getattr(state, "current_chapter", 1) >= 5 and features is not None
+            and features.unlocked.get("weapons")):
+        return t("hud_weapon", name=state.weapon_name)
+    return ""
+
+
 def draw_hud(surf, fonts, state):
     """Top bar: HUD text, lives, wave."""
     # Chapter 2: hud_highlight changes the look of the bar.
@@ -387,21 +399,10 @@ def draw_hud(surf, fonts, state):
     # which keeps clear of the wave and the lives. An item that does
     # not fit is cut with an ellipsis: the shield label first, then
     # the rank.
-    # Chapter 5: the name of the active weapon comes last, once weapons
-    # is written. Its room is kept first: the items before it are cut
-    # to leave it whole.
     outputs = getattr(state, "rule_outputs", {})
     rank = str(outputs.get("player_rank", "") or "")
     shield_lbl = str(outputs.get("shield_label", "") or "")
-
-    weapon_lbl = ""
-    features = getattr(state, "features", None)
-    if (getattr(state, "current_chapter", 1) >= 5 and features is not None
-            and features.unlocked.get("weapons")):
-        weapon_lbl = t("hud_weapon", name=state.weapon_name)
     right = HUD_RIGHT
-    if weapon_lbl:
-        right = HUD_RIGHT - HUD_GAP - fonts.small.size(weapon_lbl)[0]
 
     line = _fit(fonts.reg, state.hud_line, right - 10)
     x = 10 + text(surf, fonts.reg, line, 10, 8).width
@@ -426,8 +427,11 @@ def draw_hud(surf, fonts, state):
             break
         x += text(surf, fonts.small, item, x, 11, col).width
 
+    # Chapter 5: name of the active weapon, on a second line under the
+    # bar, so that it never cuts the rank or the shield label
+    weapon_lbl = weapon_label(state)
     if weapon_lbl:
-        text(surf, fonts.small, weapon_lbl, x + HUD_GAP, 11, C.BLUE)
+        text(surf, fonts.small, weapon_lbl, 10, WEAPON_LINE_Y, C.BLUE)
 
     # name tease (chapter 3: name_tease rule output), right under the
     # bar on the right: clear of the reload bar at the bottom and of the
@@ -485,6 +489,8 @@ def draw_debug_overlay(surf, fonts, state, current_chapter):
     w = 210
     h = pad * 2 + len(rows) * 22 + 22
     x, y = 10, 44
+    if weapon_label(state):
+        y = 62      # leaves the weapon line under the top bar visible
     panel = pygame.Surface((w, h), pygame.SRCALPHA)
     panel.fill((14, 21, 32, 210))
     surf.blit(panel, (x, y))
