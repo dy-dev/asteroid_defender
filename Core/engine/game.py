@@ -3,6 +3,7 @@ game.py - Game logic: waves, shots, collisions, score, states.
 LOCKED: do not modify.
 """
 
+import math
 import random
 
 import pygame
@@ -26,6 +27,8 @@ FROZEN = "frozen"
 # Chapter 4 — pace of the slow-motion loops (engine side, not student side)
 COUNTDOWN_HOLD = C.FPS // 2     # frames a new countdown value stays on screen
 COUNTDOWN_MAX_HOLDS = 20        # beyond this, the countdown runs at frame pace
+# Chapter 5: effects a bonus color can take through powerup_effects
+POWERUP_EFFECTS = ("heal", "ammo_refill", "shield_up", "rapid_fire", "score_bonus")
 BURST_STEP_FRAMES = 8           # frames between two turns of the burst loop
 LOOP_MSG_FRAMES = C.FPS * 8     # how long a student_loops.py error stays on screen
 
@@ -131,12 +134,17 @@ class Game:
         self.low_ammo_alert = False     # low ammo alert
 
         self.fire_cd = 0
+        self.space_frames = 0           # frames Space has been held
         self.reloading = 0
         self.shield_level = 0           # shield level 0..3 (chapter 3)
         self.rapid = 0
 
         self.weapon_name = self._pick_weapon()
         self.highscores = []
+
+        # Chapter 5: visible damage
+        self.last_damage = None         # damage of the last impact
+        self.damage_popups = []         # [x, y, value, frames left]
 
         # Chapter 4: if the student defines a "countdown" event, use it
         # (their while loop controls the countdown). Otherwise engine default.
@@ -163,7 +171,8 @@ class Game:
 
         # filled at once: the top bar shows the name from the first frame,
         # countdown included
-        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo)
+        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo,
+                              self.current_chapter)
         self.game_over_line = ""
 
     def _start_position(self):
@@ -236,13 +245,18 @@ class Game:
             self.features._copied_flash = (name, C.FPS)
 
     def _cycle_weapon(self):
-        names = list(self.features.weapons)
+        # Tab only goes through the weapons present in unlocked_weapons,
+        # in the order of the dictionary; an empty set leaves them all.
+        unlocked = self.features.unlocked_weapons
+        names = [n for n in self.features.weapons
+                 if not unlocked or n in unlocked]
         if len(names) < 2:
             return
-        i = names.index(self.weapon_name)
+        i = names.index(self.weapon_name) if self.weapon_name in names else -1
         self.weapon_name = names[(i + 1) % len(names)]
 
     def update(self):
+        self._show_call_error()
         if self.state == COUNTDOWN:
             if self.countdown_student and self.slow_loops:
                 # Student's while loop drives the countdown. Pace: one
@@ -302,10 +316,13 @@ class Game:
         self._spawn_logic(f)
         self._timers()
         self._timers_ch2(f)
+        if self.current_chapter >= 5:
+            self._timers_ch5()
         self._eval_rules(f)
         self._student_hook()
 
-        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo)
+        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo,
+                              self.current_chapter)
 
     def _update_particles(self):
         for p in self.particles:
@@ -363,16 +380,37 @@ class Game:
             self.fire_cd -= 1
 
         # --- Chapter 4: charged shot (student's while loop drives charge) ---
-        # Space is held: charge builds up frame by frame via student's while.
-        # Space released: shot fires with charge-proportional power.
+        # Only when the charging loop is written. A short press on Space
+        # fires the active weapon; held beyond CHARGE_HOLD_FRAMES, the
+        # charge builds up frame by frame via the student's while, and
+        # the charged shot fires on release. Below the threshold the
+        # press is still ambiguous: nothing fires yet.
+        trigger = held
         if self.slow_loops and "charging" in self.slow_loops.loops:
-            if held and not self.charging and self.ship.ammo > 0:
-                # start charging
-                self.charging = True
-                self.charge = 0
-                if not self._start_loop("charging", {
-                        "charge": 0, "charge_rate": 3, "max_charge": 100}):
-                    self.charging = False
+            if held:
+                self.space_frames += 1
+                trigger = False
+                if (not self.charging and self.ship.ammo > 0
+                        and self.space_frames >= C.CHARGE_HOLD_FRAMES):
+                    # start charging
+                    self.charging = True
+                    self.charge = 0
+                    if not self._start_loop("charging", {
+                            "charge": 0, "charge_rate": 3, "max_charge": 100}):
+                        self.charging = False
+                    else:
+                        # the frames held before the threshold count in
+                        # the charge: the same hold gives the same power
+                        # as when the charge started at once
+                        for _ in range(C.CHARGE_HOLD_FRAMES - 1):
+                            running, _ns = self.slow_loops.step_event("charging")
+                            if not running:
+                                break
+            else:
+                pressed = self.space_frames
+                self.space_frames = 0
+                # short press released: one shot of the active weapon
+                trigger = 0 < pressed < C.CHARGE_HOLD_FRAMES
             if self.charging:
                 if held:
                     # step the student's while loop once per frame (visible pace)
@@ -418,9 +456,9 @@ class Game:
             self.reloading = delay
             return
 
-        if not held:
+        if not trigger:
             return
-        if not f.keep_firing(self.ship.ammo, held):
+        if not f.keep_firing(self.ship.ammo, trigger):
             return
         if self.ship.ammo <= 0:
             return
@@ -444,7 +482,11 @@ class Game:
             cd = int(w.get("cooldown", 12)) if w else 12
             self.fire_cd = max(1, cd // (2 if self.rapid else 1))
             base = int(w.get("damage", 1)) if w else 1
-            dmg = f.compute_damage(base, 2.0 if self.rapid else 1.0)
+            if self.current_chapter == 5:
+                # chapter 5: the damage of the weapon, as written in weapons
+                dmg = base
+            else:
+                dmg = f.compute_damage(base, 2.0 if self.rapid else 1.0)
 
         self.ship.ammo -= 1
         speed = float(f.bullet_speed) or 8.0
@@ -566,6 +608,15 @@ class Game:
                 msg += " " + t("config_more", n=len(problems) - 3)
             self.loop_msg = (msg, LOOP_MSG_FRAMES, "config_banner_footer")
 
+    def _show_call_error(self):
+        """A student function that raised: its name, the error type and
+        the message, in the red banner. The game has already fallen back
+        on the default value."""
+        err = self.features.pop_call_error()
+        if err:
+            self.loop_msg = ("student_config.py · " + err, LOOP_MSG_FRAMES,
+                             "function_banner_footer")
+
     def _update_bullets(self):
         for b in self.bullets:
             b.update()
@@ -592,7 +643,12 @@ class Game:
         for b in list(self.bullets):
             for e in list(self.enemies):
                 if b.rect.colliderect(e.rect):
+                    if e in b.hit_enemies:
+                        continue
+                    b.hit_enemies.add(e)
                     e.hp = e.hp - b.damage
+                    if self.current_chapter >= 5:
+                        self._show_damage(b, e)
                     if e.hp <= 0:
                         self._destroy(e, f)
                         # charged shot: bonus points per hit (proportional to power)
@@ -634,6 +690,44 @@ class Game:
             for b in list(self.bullets):
                 if b.y > C.HEIGHT - 8 and b.rect.colliderect(self.ship.rect):
                     self.bullets.remove(b)
+
+    def _show_damage(self, bullet, enemy):
+        """Chapter 5: the damage value appears at the point of impact,
+        and an asteroid still standing flashes."""
+        self.last_damage = bullet.damage
+        self.damage_popups.append([bullet.x, bullet.y, bullet.damage,
+                                   C.DAMAGE_POPUP_FRAMES])
+        if enemy.hp > 0:
+            enemy.hit_flash = C.HIT_FLASH_FRAMES
+
+    def _timers_ch5(self):
+        """Chapter 5: damage values rise and fade, hit flashes wear off."""
+        for p in self.damage_popups:
+            p[1] -= 0.8
+            p[3] -= 1
+        self.damage_popups = [p for p in self.damage_popups if p[3] > 0]
+        for e in self.enemies:
+            if getattr(e, "hit_flash", 0) > 0:
+                e.hit_flash -= 1
+
+    def _draw_damage(self, s):
+        """Chapter 5: cracks and flash on hit asteroids, damage values."""
+        for e in self.enemies:
+            if not isinstance(e, Asteroid):
+                continue
+            lost = C.ASTEROID_HP - e.hp
+            for i in range(max(0, lost)):
+                a = math.radians(e.angle + i * 137)
+                x2 = e.x + math.cos(a) * e.radius * 0.85
+                y2 = e.y + math.sin(a) * e.radius * 0.85
+                pygame.draw.line(s, C.BLACK, (int(e.x), int(e.y)),
+                                 (int(x2), int(y2)), 2)
+            if getattr(e, "hit_flash", 0) > 0:
+                pygame.draw.circle(s, C.WHITE, (int(e.x), int(e.y)),
+                                   e.radius, 3)
+        for x, y, value, _frames in self.damage_popups:
+            hud.text(s, self.fonts.mid, value, int(x), int(y), C.GOLD,
+                     center=True)
 
     def _points_per_hit(self, f):
         """Points per asteroid. If points_per_hit is defined, it is used;
@@ -719,7 +813,8 @@ class Game:
 
     def _end_game(self, f):
         self.state = GAMEOVER
-        self.game_over_line = f.game_over(f.player_name, self.score)
+        self.game_over_line = f.game_over(f.player_name, self.score,
+                                          self.current_chapter)
         f.save_score(f.player_name, self.score)
         self.highscores = f.load_scores()
 
@@ -735,8 +830,18 @@ class Game:
             self.powerups.append(
                 PowerUp(x, y, p["color"], p["effect"], p["duration"]))
         else:
-            self.powerups.append(
-                PowerUp(x, y, random.choice(colors), "heal", 0))
+            color = random.choice(colors)
+            effect, duration = "heal", 0
+            if self.current_chapter >= 5:
+                # chapter 5: the effect comes from powerup_effects, by
+                # color; a missing color or an unknown effect heals
+                effect = str(f.powerup_effects.get(color, "heal")).lower()
+                if effect not in POWERUP_EFFECTS:
+                    effect = "heal"
+                if effect in ("score_bonus", "rapid_fire"):
+                    duration = (float(f.bonus_duration)
+                                if f.unlocked.get("bonus_duration") else 5.0)
+            self.powerups.append(PowerUp(x, y, color, effect, duration))
 
     def _apply_powerup(self, p, f=None):
         effect = str(p.effect).lower()
@@ -802,11 +907,18 @@ class Game:
             try:
                 self.enemies.append(StudentEnemy(cls(x, y), speed))
             except Exception:  # noqa: BLE001
-                self.enemies.append(Asteroid(x, y, speed))
+                self.enemies.append(self._new_asteroid(x, y, speed))
         else:
-            self.enemies.append(Asteroid(x, y, speed))
+            self.enemies.append(self._new_asteroid(x, y, speed))
 
         self.wave_timer = C.SPAWN_INTERVAL
+
+    def _new_asteroid(self, x, y, speed):
+        """Internal asteroid. From chapter 5 it takes several hits."""
+        a = Asteroid(x, y, speed)
+        if self.current_chapter >= 5:
+            a.hp = C.ASTEROID_HP
+        return a
 
     def _spawn_waves(self, f):
         """Wave behavior driven by the student (spawn_row /
@@ -838,11 +950,11 @@ class Game:
                 try:
                     inst = cls(x, y)
                 except Exception:  # noqa: BLE001
-                    self.enemies.append(Asteroid(x, y, speed))
+                    self.enemies.append(self._new_asteroid(x, y, speed))
                     continue
                 self.enemies.append(StudentEnemy(inst, speed))
             else:
-                self.enemies.append(Asteroid(x, y, speed))
+                self.enemies.append(self._new_asteroid(x, y, speed))
 
         self.wave_timer = C.BASE_WAVE_DELAY
 
@@ -867,6 +979,14 @@ class Game:
             return self.last_fired
         if key == "iterations":
             return self.loop_turns
+        if key == "wave":
+            return self.wave
+        if key == "difficulty":
+            return self.features.difficulty(self.score)
+        if key == "powerup_colors":
+            return len(self.features.powerup_colors)
+        if key == "last_damage":
+            return "-" if self.last_damage is None else self.last_damage
         return "?"
 
     def _shield_draw_color(self):
@@ -951,6 +1071,8 @@ class Game:
         for px, py, _, _, life in self.particles:
             pygame.draw.circle(s, C.ORANGE, (int(px), int(py)),
                                max(1, life // 6))
+        if self.current_chapter >= 5:
+            self._draw_damage(s)
 
         if self.state not in (GAMEOVER, FROZEN):
             # ship body color during an active bonus: the
