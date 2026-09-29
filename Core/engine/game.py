@@ -932,6 +932,8 @@ class Game:
             return self.last_fired
         if key == "iterations":
             return self.loop_turns
+        if key == "powerup_colors":
+            return len(self.features.powerup_colors)
         if key == "last_damage":
             return "-" if self.last_damage is None else self.last_damage
         return "?"
