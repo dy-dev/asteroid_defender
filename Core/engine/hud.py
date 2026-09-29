@@ -341,18 +341,30 @@ def draw_hud(surf, fonts, state):
     # which keeps clear of the wave and the lives. An item that does
     # not fit is cut with an ellipsis: the shield label first, then
     # the rank.
+    # Chapter 5: the name of the active weapon comes last, once weapons
+    # is written. Its room is kept first: the items before it are cut
+    # to leave it whole.
     outputs = getattr(state, "rule_outputs", {})
     rank = str(outputs.get("player_rank", "") or "")
     shield_lbl = str(outputs.get("shield_label", "") or "")
 
-    line = _fit(fonts.reg, state.hud_line, HUD_RIGHT - 10)
+    weapon_lbl = ""
+    features = getattr(state, "features", None)
+    if (getattr(state, "current_chapter", 1) >= 5 and features is not None
+            and features.unlocked.get("weapons")):
+        weapon_lbl = t("hud_weapon", name=state.weapon_name)
+    right = HUD_RIGHT
+    if weapon_lbl:
+        right = HUD_RIGHT - HUD_GAP - fonts.small.size(weapon_lbl)[0]
+
+    line = _fit(fonts.reg, state.hud_line, right - 10)
     x = 10 + text(surf, fonts.reg, line, 10, 8).width
 
     items = [(it, col) for it, col in ((rank, C.AMBER), (shield_lbl, C.GREEN)) if it]
     ellipsis = fonts.small.size("…")[0]
     for i, (item, col) in enumerate(items):
         x += HUD_GAP
-        room = HUD_RIGHT - x
+        room = right - x
         later = items[i + 1:]
         # whole if it leaves room for the next items, or at least for
         # their ellipsis; otherwise cut to the room left, and stop there
@@ -360,9 +372,12 @@ def draw_hud(surf, fonts, state):
         if fonts.small.size(item)[0] > room - min_later:
             item = _fit(fonts.small, item, room)
             if item:
-                text(surf, fonts.small, item, x, 11, col)
+                x += text(surf, fonts.small, item, x, 11, col).width
             break
         x += text(surf, fonts.small, item, x, 11, col).width
+
+    if weapon_lbl:
+        text(surf, fonts.small, weapon_lbl, x + HUD_GAP, 11, C.BLUE)
 
     # name tease (chapter 3: name_tease rule output)
     tease = getattr(state, "rule_outputs", {}).get("name_tease", "")

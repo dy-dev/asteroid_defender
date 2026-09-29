@@ -90,6 +90,7 @@ TEXTS = {
 
     # --- HUD --------------------------------------------------------------
     "hud_wave": {"fr": "vague {wave}", "en": "wave {wave}"},
+    "hud_weapon": {"fr": "arme : {name}", "en": "weapon: {name}"},
     "alert_magazine_empty": {"fr": "! CHARGEUR VIDE", "en": "! MAGAZINE EMPTY"},
     "alert_low_ammo": {"fr": "! MUNITIONS BASSES", "en": "! LOW AMMO"},
     "alert_critical": {"fr": "!! ÉTAT CRITIQUE !!", "en": "!! CRITICAL STATE !!"},
