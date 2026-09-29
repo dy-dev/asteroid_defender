@@ -118,6 +118,8 @@ TEXTS = {
     "debug_iterations": {"fr": "tours", "en": "turns"},
     "debug_damage": {"fr": "dégâts", "en": "damage"},
     "debug_colours": {"fr": "couleurs", "en": "colours"},
+    "debug_wave": {"fr": "vague", "en": "wave"},
+    "debug_difficulty": {"fr": "difficulté", "en": "difficulty"},
 
     # --- game over --------------------------------------------------------
     "game_over_title": {"fr": "PARTIE TERMINÉE", "en": "GAME OVER"},
@@ -259,6 +261,10 @@ TEXTS = {
         "en": "REPETITIONS in student_loops.py:",
     },
     "tooltip_provides": {"fr": "fournit : {states}", "en": "provides: {states}"},
+    "tooltip_functions": {
+        "fr": "FONCTIONS à écrire dans student_config.py :",
+        "en": "FUNCTIONS to write in student_config.py:",
+    },
 
     # --- student_loops.py errors (chapter 4, red banner) ------------------
     # {error} is the raw Python message: it stays as Python writes it.

@@ -133,13 +133,15 @@ CATALOG = [
     ("difficulty_level",
      {"fr": "Paliers de difficulté", "en": "Difficulty tiers"},
      "function",
-     {"fr": "La difficulté s'adapte au score", "en": "The difficulty adapts to the score"},
-     99, "field"),
+     {"fr": "La difficulté s'adapte au score",
+      "en": "The difficulty adapts to the score"},
+     6, "field"),
     ("spawn_row",
-     {"fr": "Formations d'ennemis", "en": "Enemy formations"},
+     {"fr": "Formation d'ennemis", "en": "Enemy formation"},
      "function",
-     {"fr": "Les ennemis arrivent en rangées", "en": "Enemies arrive in rows"},
-     99, "field"),
+     {"fr": "Positions des ennemis d'une même vague",
+      "en": "Positions of the enemies of one wave"},
+     6, "field"),
     ("reload_time",
      {"fr": "Temps de rechargement", "en": "Reload time"},
      "variable",
@@ -153,18 +155,21 @@ CATALOG = [
     ("should_keep_firing",
      {"fr": "Autorisation de tir", "en": "Fire permission"},
      "function",
-     {"fr": "Décide quand le tir est permis", "en": "Decides when firing is allowed"},
-     99, "ship"),
+     {"fr": "Décide quand le tir est autorisé",
+      "en": "Decides when firing is allowed"},
+     6, "ship"),
     ("hud_text",
-     {"fr": "Texte du HUD", "en": "HUD text"},
+     {"fr": "Texte du bandeau", "en": "HUD text"},
      "function",
-     {"fr": "Compose la ligne d'infos en haut", "en": "Builds the information line at the top"},
-     99, "hud"),
+     {"fr": "Compose la ligne d'information du haut de l'écran",
+      "en": "Builds the information line at the top of the screen"},
+     6, "hud"),
     ("game_over_text",
      {"fr": "Texte de fin", "en": "End text"},
      "function",
-     {"fr": "Le message de l'écran de fin", "en": "The message of the end screen"},
-     99, "hud"),
+     {"fr": "Compose le message de l'écran de fin de partie",
+      "en": "Builds the message of the game-over screen"},
+     6, "hud"),
     ("powerup_colors",
      {"fr": "Couleurs des bonus de soin", "en": "Healing bonus colours"},
      "variable",
@@ -192,13 +197,15 @@ CATALOG = [
     ("damage",
      {"fr": "Calcul des dégâts", "en": "Damage calculation"},
      "function",
-     {"fr": "Paramètre les dégâts infligés", "en": "Sets the damage dealt"},
-     99, "ship"),
+     {"fr": "Fixe les dégâts infligés",
+      "en": "Sets the damage dealt"},
+     6, "ship"),
     ("spawn_pattern",
      {"fr": "Composition des vagues", "en": "Wave composition"},
      "function",
-     {"fr": "Nombre et vitesse par vague", "en": "Number and speed for each wave"},
-     99, "field"),
+     {"fr": "Nombre et vitesse des ennemis de chaque vague",
+      "en": "Number and speed of the enemies of each wave"},
+     6, "field"),
     ("GLOBAL_DIFFICULTY",
      {"fr": "Difficulté globale", "en": "Overall difficulty"},
      "variable",
@@ -230,6 +237,30 @@ CATALOG = [
      {"fr": "Affiche les meilleurs scores", "en": "Shows the high scores"},
      99, "hud"),
 ]
+
+# Functions of the catalog (chapter 6+): the tooltip shows the full
+# signature and what the function returns. Without the parameters, a
+# function cannot be written.
+FUNCTION_SIGNATURES = {
+    "hud_text": ("hud_text(name, score, ammo)",
+                 {"fr": "renvoie un texte", "en": "returns a string"}),
+    "game_over_text": ("game_over_text(name, score)",
+                       {"fr": "renvoie un texte", "en": "returns a string"}),
+    "difficulty_level": ("difficulty_level(score)",
+                         {"fr": 'renvoie "easy", "normal" ou "hard"',
+                          "en": 'returns "easy", "normal" or "hard"'}),
+    "should_keep_firing": ("should_keep_firing(ammo, trigger_held)",
+                           {"fr": "renvoie un booléen", "en": "returns a boolean"}),
+    "damage": ("damage(base, multiplier=1.0)",
+               {"fr": "renvoie un nombre", "en": "returns a number"}),
+    "spawn_pattern": ("spawn_pattern(wave)",
+                      {"fr": "renvoie un couple (nombre, vitesse)",
+                       "en": "returns a pair (count, speed)"}),
+    "spawn_row": ("spawn_row(n)",
+                  {"fr": "renvoie une liste d'abscisses",
+                   "en": "returns a list of x positions"}),
+}
+
 
 # Visual bonus missions. Each one appears from the chapter where the
 # element it decorates is in play, then follows the same rules as the
@@ -433,6 +464,8 @@ DEBUG_ROWS = [
     ("debug_iterations", "iterations", 4),
     ("debug_damage", "last_damage", 5),
     ("debug_colours", "powerup_colors", 5),
+    ("debug_wave", "wave", 6),
+    ("debug_difficulty", "difficulty", 6),
 ]
 
 
@@ -799,6 +832,8 @@ def _draw_zone_tooltip(surf, fonts, zone, todo, bonus, mouse_pos, states=None,
     copyable = []       # copyable names, in display order
 
     # 1) variables to write
+    functions = [e for e in todo if e[0] in FUNCTION_SIGNATURES]
+    todo = [e for e in todo if e[0] not in FUNCTION_SIGNATURES]
     for name, label, kind, effect, is_bonus in todo:
         copyable.append(name)
         lines.append((f"{len(copyable)}. {name}", C.WHITE, fonts.reg))
@@ -807,6 +842,16 @@ def _draw_zone_tooltip(surf, fonts, zone, todo, bonus, mouse_pos, states=None,
         copyable.append(name)
         lines.append((f"{len(copyable)}. {name}  {t('tooltip_bonus_tag')}", C.VIOLET, fonts.reg))
         lines.append((f"   {kind} · {effect}", C.GREY, fonts.tiny))
+
+    # 1 bis) functions to write (chapter 6+): signature and return value
+    if functions:
+        lines.append((t("tooltip_functions"), C.GREEN, fonts.tiny))
+        for name, label, kind, effect, is_bonus in functions:
+            signature, returns = FUNCTION_SIGNATURES[name]
+            copyable.append(name)
+            lines.append((f"{len(copyable)}. {signature} → {pick(returns)}",
+                          C.WHITE, fonts.reg))
+            lines.append((f"   {label} · {effect}", C.GREY, fonts.tiny))
 
     # 2) states to read in student_rules.py (chapter 3+)
     if states:

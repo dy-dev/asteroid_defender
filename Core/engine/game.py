@@ -945,6 +945,10 @@ class Game:
             return self.last_fired
         if key == "iterations":
             return self.loop_turns
+        if key == "wave":
+            return self.wave
+        if key == "difficulty":
+            return self.features.difficulty(self.score)
         if key == "powerup_colors":
             return len(self.features.powerup_colors)
         if key == "last_damage":
