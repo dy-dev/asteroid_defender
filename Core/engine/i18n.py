@@ -107,6 +107,7 @@ TEXTS = {
     "debug_charge": {"fr": "charge", "en": "charge"},
     "debug_fired": {"fr": "tirs partis", "en": "shots fired"},
     "debug_iterations": {"fr": "tours", "en": "turns"},
+    "debug_damage": {"fr": "dégâts", "en": "damage"},
 
     # --- game over --------------------------------------------------------
     "game_over_title": {"fr": "PARTIE TERMINÉE", "en": "GAME OVER"},

@@ -401,6 +401,7 @@ DEBUG_ROWS = [
     ("debug_charge", "charge", 4),
     ("debug_fired", "fired", 4),
     ("debug_iterations", "iterations", 4),
+    ("debug_damage", "last_damage", 5),
 ]
 
 

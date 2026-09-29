@@ -58,3 +58,9 @@ MAX_ASTEROIDS = 6           # max number of asteroids on screen at once
 SPAWN_MARGIN = 40           # side margin for the X scatter
 RELOAD_FALLBACK = 90        # fallback reload delay (frames) at 0 ammo
 BONUS_AMMO_REFILL = 15      # ammo given back by an "ammo" bonus
+
+# --- Visible damage (chapter 5+) --------------------------------------------
+ASTEROID_HP = 3             # hit points of an asteroid from chapter 5
+DAMAGE_POPUP_FRAMES = FPS // 2  # how long a damage value stays on screen
+HIT_FLASH_FRAMES = 8        # white flash of an asteroid hit but not destroyed
+GOLD = (255, 204, 0)        # color of the damage values

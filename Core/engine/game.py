@@ -3,6 +3,7 @@ game.py - Game logic: waves, shots, collisions, score, states.
 LOCKED: do not modify.
 """
 
+import math
 import random
 
 import pygame
@@ -137,6 +138,10 @@ class Game:
 
         self.weapon_name = self._pick_weapon()
         self.highscores = []
+
+        # Chapter 5: visible damage
+        self.last_damage = None         # damage of the last impact
+        self.damage_popups = []         # [x, y, value, frames left]
 
         # Chapter 4: if the student defines a "countdown" event, use it
         # (their while loop controls the countdown). Otherwise engine default.
@@ -302,6 +307,8 @@ class Game:
         self._spawn_logic(f)
         self._timers()
         self._timers_ch2(f)
+        if self.current_chapter >= 5:
+            self._timers_ch5()
         self._eval_rules(f)
         self._student_hook()
 
@@ -444,7 +451,11 @@ class Game:
             cd = int(w.get("cooldown", 12)) if w else 12
             self.fire_cd = max(1, cd // (2 if self.rapid else 1))
             base = int(w.get("damage", 1)) if w else 1
-            dmg = f.compute_damage(base, 2.0 if self.rapid else 1.0)
+            if self.current_chapter == 5:
+                # chapter 5: the damage of the weapon, as written in weapons
+                dmg = base
+            else:
+                dmg = f.compute_damage(base, 2.0 if self.rapid else 1.0)
 
         self.ship.ammo -= 1
         speed = float(f.bullet_speed) or 8.0
@@ -592,7 +603,12 @@ class Game:
         for b in list(self.bullets):
             for e in list(self.enemies):
                 if b.rect.colliderect(e.rect):
+                    if e in b.hit_enemies:
+                        continue
+                    b.hit_enemies.add(e)
                     e.hp = e.hp - b.damage
+                    if self.current_chapter >= 5:
+                        self._show_damage(b, e)
                     if e.hp <= 0:
                         self._destroy(e, f)
                         # charged shot: bonus points per hit (proportional to power)
@@ -634,6 +650,44 @@ class Game:
             for b in list(self.bullets):
                 if b.y > C.HEIGHT - 8 and b.rect.colliderect(self.ship.rect):
                     self.bullets.remove(b)
+
+    def _show_damage(self, bullet, enemy):
+        """Chapter 5: the damage value appears at the point of impact,
+        and an asteroid still standing flashes."""
+        self.last_damage = bullet.damage
+        self.damage_popups.append([bullet.x, bullet.y, bullet.damage,
+                                   C.DAMAGE_POPUP_FRAMES])
+        if enemy.hp > 0:
+            enemy.hit_flash = C.HIT_FLASH_FRAMES
+
+    def _timers_ch5(self):
+        """Chapter 5: damage values rise and fade, hit flashes wear off."""
+        for p in self.damage_popups:
+            p[1] -= 0.8
+            p[3] -= 1
+        self.damage_popups = [p for p in self.damage_popups if p[3] > 0]
+        for e in self.enemies:
+            if getattr(e, "hit_flash", 0) > 0:
+                e.hit_flash -= 1
+
+    def _draw_damage(self, s):
+        """Chapter 5: cracks and flash on hit asteroids, damage values."""
+        for e in self.enemies:
+            if not isinstance(e, Asteroid):
+                continue
+            lost = C.ASTEROID_HP - e.hp
+            for i in range(max(0, lost)):
+                a = math.radians(e.angle + i * 137)
+                x2 = e.x + math.cos(a) * e.radius * 0.85
+                y2 = e.y + math.sin(a) * e.radius * 0.85
+                pygame.draw.line(s, C.BLACK, (int(e.x), int(e.y)),
+                                 (int(x2), int(y2)), 2)
+            if getattr(e, "hit_flash", 0) > 0:
+                pygame.draw.circle(s, C.WHITE, (int(e.x), int(e.y)),
+                                   e.radius, 3)
+        for x, y, value, _frames in self.damage_popups:
+            hud.text(s, self.fonts.mid, value, int(x), int(y), C.GOLD,
+                     center=True)
 
     def _points_per_hit(self, f):
         """Points per asteroid. If points_per_hit is defined, it is used;
@@ -802,11 +856,18 @@ class Game:
             try:
                 self.enemies.append(StudentEnemy(cls(x, y), speed))
             except Exception:  # noqa: BLE001
-                self.enemies.append(Asteroid(x, y, speed))
+                self.enemies.append(self._new_asteroid(x, y, speed))
         else:
-            self.enemies.append(Asteroid(x, y, speed))
+            self.enemies.append(self._new_asteroid(x, y, speed))
 
         self.wave_timer = C.SPAWN_INTERVAL
+
+    def _new_asteroid(self, x, y, speed):
+        """Internal asteroid. From chapter 5 it takes several hits."""
+        a = Asteroid(x, y, speed)
+        if self.current_chapter >= 5:
+            a.hp = C.ASTEROID_HP
+        return a
 
     def _spawn_waves(self, f):
         """Wave behavior driven by the student (spawn_row /
@@ -838,11 +899,11 @@ class Game:
                 try:
                     inst = cls(x, y)
                 except Exception:  # noqa: BLE001
-                    self.enemies.append(Asteroid(x, y, speed))
+                    self.enemies.append(self._new_asteroid(x, y, speed))
                     continue
                 self.enemies.append(StudentEnemy(inst, speed))
             else:
-                self.enemies.append(Asteroid(x, y, speed))
+                self.enemies.append(self._new_asteroid(x, y, speed))
 
         self.wave_timer = C.BASE_WAVE_DELAY
 
@@ -867,6 +928,8 @@ class Game:
             return self.last_fired
         if key == "iterations":
             return self.loop_turns
+        if key == "last_damage":
+            return "-" if self.last_damage is None else self.last_damage
         return "?"
 
     def _shield_draw_color(self):
@@ -951,6 +1014,8 @@ class Game:
         for px, py, _, _, life in self.particles:
             pygame.draw.circle(s, C.ORANGE, (int(px), int(py)),
                                max(1, life // 6))
+        if self.current_chapter >= 5:
+            self._draw_damage(s)
 
         if self.state not in (GAMEOVER, FROZEN):
             # ship body color during an active bonus: the
