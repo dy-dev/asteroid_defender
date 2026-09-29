@@ -398,6 +398,14 @@ class Game:
                     if not self._start_loop("charging", {
                             "charge": 0, "charge_rate": 3, "max_charge": 100}):
                         self.charging = False
+                    else:
+                        # the frames held before the threshold count in
+                        # the charge: the same hold gives the same power
+                        # as when the charge started at once
+                        for _ in range(C.CHARGE_HOLD_FRAMES - 1):
+                            running, _ns = self.slow_loops.step_event("charging")
+                            if not running:
+                                break
             else:
                 pressed = self.space_frames
                 self.space_frames = 0
