@@ -369,7 +369,11 @@ def draw_hud(surf, fonts, state):
     line = _fit(fonts.reg, state.hud_line, right - 10)
     x = 10 + text(surf, fonts.reg, line, 10, 8).width
 
-    items = [(it, col) for it, col in ((rank, C.AMBER), (shield_lbl, C.GREEN)) if it]
+    # the shield label takes the shield_color of the rules when it is a
+    # known color name, green otherwise
+    shield_name = str(outputs.get("shield_color", "") or "").lower().strip()
+    shield_col = C.COLOR_NAMES.get(shield_name, C.GREEN)
+    items = [(it, col) for it, col in ((rank, C.AMBER), (shield_lbl, shield_col)) if it]
     ellipsis = fonts.small.size("…")[0]
     for i, (item, col) in enumerate(items):
         x += HUD_GAP
