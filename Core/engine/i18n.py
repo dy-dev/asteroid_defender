@@ -165,6 +165,15 @@ TEXTS = {
               "The error still needs fixing.",
     },
     "config_more": {"fr": "(+{n} autre(s))", "en": "(+{n} more)"},
+    # {msg} is the raw Python message: it stays as Python writes it.
+    "error_function": {
+        "fr": "{name} : {kind} : {msg}",
+        "en": "{name}: {kind}: {msg}",
+    },
+    "function_banner_footer": {
+        "fr": "Le jeu continue avec la valeur par défaut, jusqu'à la correction.",
+        "en": "The game keeps running with the default value until the error is fixed.",
+    },
     "config_banner_footer": {
         "fr": "Le jeu continue : seules les lignes fautives sont ignorées. "
               "Détail en pause (Échap).",

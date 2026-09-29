@@ -253,6 +253,7 @@ class Game:
         self.weapon_name = names[(i + 1) % len(names)]
 
     def update(self):
+        self._show_call_error()
         if self.state == COUNTDOWN:
             if self.countdown_student and self.slow_loops:
                 # Student's while loop drives the countdown. Pace: one
@@ -582,6 +583,15 @@ class Game:
             if len(problems) > 3:
                 msg += " " + t("config_more", n=len(problems) - 3)
             self.loop_msg = (msg, LOOP_MSG_FRAMES, "config_banner_footer")
+
+    def _show_call_error(self):
+        """A student function that raised: its name, the error type and
+        the message, in the red banner. The game has already fallen back
+        on the default value."""
+        err = self.features.pop_call_error()
+        if err:
+            self.loop_msg = ("student_config.py · " + err, LOOP_MSG_FRAMES,
+                             "function_banner_footer")
 
     def _update_bullets(self):
         for b in self.bullets:

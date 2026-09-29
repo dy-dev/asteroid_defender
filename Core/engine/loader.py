@@ -191,18 +191,23 @@ def has_callable(cfg, name):
     return callable(getattr(cfg, name, None))
 
 
-def safe_call(cfg, name, default, *args, **kwargs):
+def safe_call(cfg, name, default, *args, on_error=None, **kwargs):
     """Calls a student function with a safety net.
 
     If the function is missing, raises, or returns None, the default
-    is used. No traceback ever reaches the screen.
+    is used. No traceback ever reaches the screen. When it raises,
+    on_error (if given) receives the exception, so that the game can
+    name the function in its red banner. A None result stays silent:
+    a forgotten return must not be reported as an error.
     """
     fn = getattr(cfg, name, None)
     if not callable(fn):
         return default, False
     try:
         result = fn(*args, **kwargs)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        if on_error is not None:
+            on_error(exc)
         return default, False
     if result is None:
         return default, False
@@ -268,6 +273,7 @@ class StudentFeatures:
         self.problem = None
         self.problems = []
         self.unlocked = {}
+        self.call_error = None      # last error raised by a student function
 
     # -- utilitaires internes -------------------------------------------------
     def _val(self, name, default, expected=None):
@@ -394,13 +400,25 @@ class StudentFeatures:
 
     # -- student function calls, always protected ----------------------------
 
+    def _call(self, name, default, *args):
+        """safe_call that keeps the error of a function that raises."""
+        def remember(exc):
+            self.call_error = t("error_function", name=name,
+                                kind=type(exc).__name__, msg=exc)
+        return safe_call(self.cfg, name, default, *args, on_error=remember)
+
+    def pop_call_error(self):
+        """Last error raised by a student function, then forgotten."""
+        err, self.call_error = self.call_error, None
+        return err
+
     def difficulty(self, score):
-        value, _ = safe_call(self.cfg, "difficulty_level", "easy", score)
+        value, _ = self._call("difficulty_level", "easy", score)
         return value if isinstance(value, str) else "easy"
 
     def row_positions(self, n):
         default = [C.WIDTH // 2]
-        value, ok = safe_call(self.cfg, "spawn_row", default, n)
+        value, ok = self._call("spawn_row", default, n)
         if not ok or not isinstance(value, (list, tuple)):
             return default
         clean = [p for p in value if isinstance(p, (int, float))]
@@ -408,7 +426,7 @@ class StudentFeatures:
 
     def keep_firing(self, ammo, trigger_held):
         default = ammo > 0 and trigger_held
-        value, ok = safe_call(self.cfg, "should_keep_firing", default,
+        value, ok = self._call("should_keep_firing", default,
                               ammo, trigger_held)
         return bool(value) if ok else default
 
@@ -420,7 +438,7 @@ class StudentFeatures:
         else:
             default = t("default_hud_line", name=display_name(name),
                         score=score, ammo=ammo)
-        value, ok = safe_call(self.cfg, "hud_text", default, name, score, ammo)
+        value, ok = self._call("hud_text", default, name, score, ammo)
         return str(value) if ok else default
 
     def game_over(self, name, score, chapter=1):
@@ -429,18 +447,18 @@ class StudentFeatures:
         else:
             default = t("default_game_over_line", name=display_name(name),
                         score=score)
-        value, ok = safe_call(self.cfg, "game_over_text", default, name, score)
+        value, ok = self._call("game_over_text", default, name, score)
         return str(value) if ok else default
 
     def compute_damage(self, base, multiplier=1.0):
-        value, ok = safe_call(self.cfg, "damage", base, base, multiplier)
+        value, ok = self._call("damage", base, base, multiplier)
         if not ok or not isinstance(value, (int, float)):
             return base
         return int(value)
 
     def wave_pattern(self, wave):
         default = (1, 2.0)
-        value, ok = safe_call(self.cfg, "spawn_pattern", default, wave)
+        value, ok = self._call("spawn_pattern", default, wave)
         if not ok:
             return default
         try:
@@ -450,10 +468,10 @@ class StudentFeatures:
             return default
 
     def save_score(self, name, score):
-        safe_call(self.cfg, "save_highscore", None, name, score)
+        self._call("save_highscore", None, name, score)
 
     def load_scores(self):
-        value, ok = safe_call(self.cfg, "load_highscores", [])
+        value, ok = self._call("load_highscores", [])
         if not ok or not isinstance(value, (list, tuple)):
             return []
         return list(value)[:C.HIGHSCORE_SHOWN]
