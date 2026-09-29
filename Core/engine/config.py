@@ -58,6 +58,7 @@ MAX_ASTEROIDS = 6           # max number of asteroids on screen at once
 SPAWN_MARGIN = 40           # side margin for the X scatter
 RELOAD_FALLBACK = 90        # fallback reload delay (frames) at 0 ammo
 BONUS_AMMO_REFILL = 15      # ammo given back by an "ammo" bonus
+CHARGE_HOLD_FRAMES = 15     # Space held this long (0.25 s) starts the charge
 
 # --- Visible damage (chapter 5+) --------------------------------------------
 ASTEROID_HP = 3             # hit points of an asteroid from chapter 5

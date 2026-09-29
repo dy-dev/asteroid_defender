@@ -132,6 +132,7 @@ class Game:
         self.low_ammo_alert = False     # low ammo alert
 
         self.fire_cd = 0
+        self.space_frames = 0           # frames Space has been held
         self.reloading = 0
         self.shield_level = 0           # shield level 0..3 (chapter 3)
         self.rapid = 0
@@ -377,16 +378,29 @@ class Game:
             self.fire_cd -= 1
 
         # --- Chapter 4: charged shot (student's while loop drives charge) ---
-        # Space is held: charge builds up frame by frame via student's while.
-        # Space released: shot fires with charge-proportional power.
+        # Only when the charging loop is written. A short press on Space
+        # fires the active weapon; held beyond CHARGE_HOLD_FRAMES, the
+        # charge builds up frame by frame via the student's while, and
+        # the charged shot fires on release. Below the threshold the
+        # press is still ambiguous: nothing fires yet.
+        trigger = held
         if self.slow_loops and "charging" in self.slow_loops.loops:
-            if held and not self.charging and self.ship.ammo > 0:
-                # start charging
-                self.charging = True
-                self.charge = 0
-                if not self._start_loop("charging", {
-                        "charge": 0, "charge_rate": 3, "max_charge": 100}):
-                    self.charging = False
+            if held:
+                self.space_frames += 1
+                trigger = False
+                if (not self.charging and self.ship.ammo > 0
+                        and self.space_frames >= C.CHARGE_HOLD_FRAMES):
+                    # start charging
+                    self.charging = True
+                    self.charge = 0
+                    if not self._start_loop("charging", {
+                            "charge": 0, "charge_rate": 3, "max_charge": 100}):
+                        self.charging = False
+            else:
+                pressed = self.space_frames
+                self.space_frames = 0
+                # short press released: one shot of the active weapon
+                trigger = 0 < pressed < C.CHARGE_HOLD_FRAMES
             if self.charging:
                 if held:
                     # step the student's while loop once per frame (visible pace)
@@ -432,9 +446,9 @@ class Game:
             self.reloading = delay
             return
 
-        if not held:
+        if not trigger:
             return
-        if not f.keep_firing(self.ship.ammo, held):
+        if not f.keep_firing(self.ship.ammo, trigger):
             return
         if self.ship.ammo <= 0:
             return
