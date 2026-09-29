@@ -72,6 +72,9 @@ class Bullet:
         self.y = float(y)
         self.speed = float(speed)
         self.damage = damage
+        # enemies already hit: a bullet that stays several frames inside
+        # the same enemy deals its damage to it only once
+        self.hit_enemies = set()
 
     @property
     def rect(self):
