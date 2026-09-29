@@ -1,35 +1,28 @@
-# =====================================================================
-#  student_loops.py
+# student_loops.py — the repetitions file
 #
-#  The game repetitions file. It is empty for now: that is normal.
+# Each block matches a game event. When the event happens, the game runs
+# its loop one turn at a time, spread over time: the effect of each turn
+# shows on screen.
+# No functions here: only loops inside event blocks.
 #
-#  -------------------------------------------------------------------
-#  How it works
-#  -------------------------------------------------------------------
-#
-#  Each block matches a game event and starts with a condition on that
-#  event, for example:  if event == "countdown":
-#  The block holds a loop. When the event happens, the game runs that
-#  loop one turn at a time, spread over time: the effect of each turn
-#  shows on screen — the countdown value changing, the gauge rising, a
-#  projectile leaving.
-#
-#  No functions here: only loops inside event blocks.
-#
-#  -------------------------------------------------------------------
-#  Where to find the names
-#  -------------------------------------------------------------------
-#
-#  The events are discovered in the game. Pause the game with Esc, then
-#  hover over the ship: the "REPETITIONS in student_loops.py" section
-#  gives the exact name of each event, its effect and the values
-#  provided inside the block.
-#
-#  -------------------------------------------------------------------
-#  If something goes wrong
-#  -------------------------------------------------------------------
-#
-#  A faulty loop never blocks the game: the game stops it and shows the
-#  problem in a red banner at the bottom of the screen. A loop that
-#  never ends is cut after 1000 turns.
-# =====================================================================
+# Available events (found while paused, by hovering over the ship):
+#   countdown · charging · burst
+
+# --- Start countdown: repeat while the counter is not zero ---------------
+if event == "countdown":
+    while countdown > 0:
+        countdown -= 1
+
+# --- Charged shot: climb to the maximum, then leave the loop -------------
+if event == "charging":
+    while True:
+        charge += charge_rate
+        if charge >= max_charge:
+            break
+
+# --- Burst: repeat a known number of times, skipping every other turn ----
+if event == "burst":
+    for i in range(burst_count):
+        if i % 2 == 1:
+            continue
+        fired += 1
