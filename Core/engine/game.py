@@ -168,7 +168,8 @@ class Game:
 
         # filled at once: the top bar shows the name from the first frame,
         # countdown included
-        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo)
+        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo,
+                              self.current_chapter)
         self.game_over_line = ""
 
     def _start_position(self):
@@ -316,7 +317,8 @@ class Game:
         self._eval_rules(f)
         self._student_hook()
 
-        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo)
+        self.hud_line = f.hud(f.player_name, self.score, self.ship.ammo,
+                              self.current_chapter)
 
     def _update_particles(self):
         for p in self.particles:
@@ -777,7 +779,8 @@ class Game:
 
     def _end_game(self, f):
         self.state = GAMEOVER
-        self.game_over_line = f.game_over(f.player_name, self.score)
+        self.game_over_line = f.game_over(f.player_name, self.score,
+                                          self.current_chapter)
         f.save_score(f.player_name, self.score)
         self.highscores = f.load_scores()
 

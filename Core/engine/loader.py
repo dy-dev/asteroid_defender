@@ -412,15 +412,23 @@ class StudentFeatures:
                               ammo, trigger_held)
         return bool(value) if ok else default
 
-    def hud(self, name, score, ammo):
-        default = t("default_hud_line", name=display_name(name),
-                    score=score, ammo=ammo)
+    def hud(self, name, score, ammo, chapter=1):
+        # from chapter 6 the default announces the function to write:
+        # a default must not look like a success
+        if chapter >= 6:
+            default = t("missing_hud_text")
+        else:
+            default = t("default_hud_line", name=display_name(name),
+                        score=score, ammo=ammo)
         value, ok = safe_call(self.cfg, "hud_text", default, name, score, ammo)
         return str(value) if ok else default
 
-    def game_over(self, name, score):
-        default = t("default_game_over_line", name=display_name(name),
-                    score=score)
+    def game_over(self, name, score, chapter=1):
+        if chapter >= 6:
+            default = t("missing_game_over_text")
+        else:
+            default = t("default_game_over_line", name=display_name(name),
+                        score=score)
         value, ok = safe_call(self.cfg, "game_over_text", default, name, score)
         return str(value) if ok else default
 

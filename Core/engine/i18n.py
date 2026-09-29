@@ -71,6 +71,14 @@ TEXTS = {
         "fr": "{name}   Score : {score}   Munitions : {ammo}",
         "en": "{name}   Score: {score}   Ammo: {ammo}",
     },
+    "missing_hud_text": {
+        "fr": "HUD : hud_text() à écrire",
+        "en": "HUD: hud_text() to write",
+    },
+    "missing_game_over_text": {
+        "fr": "Fin de partie : game_over_text() à écrire",
+        "en": "Game over: game_over_text() to write",
+    },
     "default_game_over_line": {
         "fr": "{name} — Partie terminée — score : {score}",
         "en": "{name} — Game over — score: {score}",
