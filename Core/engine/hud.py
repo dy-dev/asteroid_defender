@@ -715,7 +715,9 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos,
     surf.blit(overlay, (0, 0))
 
     text(surf, fonts.mid, t("pause_title"), 24, 16)
-    if current_chapter >= 4:
+    if current_chapter >= 6:
+        intro = t("pause_intro_functions")
+    elif current_chapter >= 4:
         intro = t("pause_intro_loops")
     elif current_chapter >= 3:
         intro = t("pause_intro_states")

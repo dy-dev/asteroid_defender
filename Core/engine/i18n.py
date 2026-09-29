@@ -152,6 +152,10 @@ TEXTS = {
         "fr": "Survoler un élément pour voir les états à lire dans les règles",
         "en": "Hover over an element to see the states to read in the rules",
     },
+    "pause_intro_functions": {
+        "fr": "Survoler un élément pour voir les fonctions à écrire, les états à lire et les répétitions",
+        "en": "Hover over an element to see the functions to write, the states to read and the repetitions",
+    },
     "pause_intro_loops": {
         "fr": "Survoler un élément pour voir les états à lire et les répétitions",
         "en": "Hover over an element to see the states to read and the repetitions",
