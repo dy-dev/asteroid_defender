@@ -241,10 +241,14 @@ class Game:
             self.features._copied_flash = (name, C.FPS)
 
     def _cycle_weapon(self):
-        names = list(self.features.weapons)
+        # Tab only goes through the weapons present in unlocked_weapons,
+        # in the order of the dictionary; an empty set leaves them all.
+        unlocked = self.features.unlocked_weapons
+        names = [n for n in self.features.weapons
+                 if not unlocked or n in unlocked]
         if len(names) < 2:
             return
-        i = names.index(self.weapon_name)
+        i = names.index(self.weapon_name) if self.weapon_name in names else -1
         self.weapon_name = names[(i + 1) % len(names)]
 
     def update(self):
