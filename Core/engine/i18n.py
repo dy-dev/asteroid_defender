@@ -71,6 +71,14 @@ TEXTS = {
         "fr": "{name}   Score : {score}   Munitions : {ammo}",
         "en": "{name}   Score: {score}   Ammo: {ammo}",
     },
+    "missing_hud_text": {
+        "fr": "HUD : hud_text() à écrire",
+        "en": "HUD: hud_text() to write",
+    },
+    "missing_game_over_text": {
+        "fr": "Fin de partie : game_over_text() à écrire",
+        "en": "Game over: game_over_text() to write",
+    },
     "default_game_over_line": {
         "fr": "{name} — Partie terminée — score : {score}",
         "en": "{name} — Game over — score: {score}",
@@ -90,6 +98,7 @@ TEXTS = {
 
     # --- HUD --------------------------------------------------------------
     "hud_wave": {"fr": "vague {wave}", "en": "wave {wave}"},
+    "hud_weapon": {"fr": "arme : {name}", "en": "weapon: {name}"},
     "alert_magazine_empty": {"fr": "! CHARGEUR VIDE", "en": "! MAGAZINE EMPTY"},
     "alert_low_ammo": {"fr": "! MUNITIONS BASSES", "en": "! LOW AMMO"},
     "alert_critical": {"fr": "!! ÉTAT CRITIQUE !!", "en": "!! CRITICAL STATE !!"},
@@ -107,6 +116,10 @@ TEXTS = {
     "debug_charge": {"fr": "charge", "en": "charge"},
     "debug_fired": {"fr": "tirs partis", "en": "shots fired"},
     "debug_iterations": {"fr": "tours", "en": "turns"},
+    "debug_damage": {"fr": "dégâts", "en": "damage"},
+    "debug_colours": {"fr": "couleurs", "en": "colours"},
+    "debug_wave": {"fr": "vague", "en": "wave"},
+    "debug_difficulty": {"fr": "difficulté", "en": "difficulty"},
 
     # --- game over --------------------------------------------------------
     "game_over_title": {"fr": "PARTIE TERMINÉE", "en": "GAME OVER"},
@@ -139,6 +152,10 @@ TEXTS = {
         "fr": "Survoler un élément pour voir les états à lire dans les règles",
         "en": "Hover over an element to see the states to read in the rules",
     },
+    "pause_intro_functions": {
+        "fr": "Survoler un élément pour voir les fonctions à écrire, les états à lire et les répétitions",
+        "en": "Hover over an element to see the functions to write, the states to read and the repetitions",
+    },
     "pause_intro_loops": {
         "fr": "Survoler un élément pour voir les états à lire et les répétitions",
         "en": "Hover over an element to see the states to read and the repetitions",
@@ -154,6 +171,15 @@ TEXTS = {
               "The error still needs fixing.",
     },
     "config_more": {"fr": "(+{n} autre(s))", "en": "(+{n} more)"},
+    # {msg} is the raw Python message: it stays as Python writes it.
+    "error_function": {
+        "fr": "{name} : {kind} : {msg}",
+        "en": "{name}: {kind}: {msg}",
+    },
+    "function_banner_footer": {
+        "fr": "Le jeu continue avec la valeur par défaut, jusqu'à la correction.",
+        "en": "The game keeps running with the default value until the error is fixed.",
+    },
     "config_banner_footer": {
         "fr": "Le jeu continue : seules les lignes fautives sont ignorées. "
               "Détail en pause (Échap).",
@@ -239,6 +265,10 @@ TEXTS = {
         "en": "REPETITIONS in student_loops.py:",
     },
     "tooltip_provides": {"fr": "fournit : {states}", "en": "provides: {states}"},
+    "tooltip_functions": {
+        "fr": "FONCTIONS à écrire dans student_config.py :",
+        "en": "FUNCTIONS to write in student_config.py:",
+    },
 
     # --- student_loops.py errors (chapter 4, red banner) ------------------
     # {error} is the raw Python message: it stays as Python writes it.
