@@ -1,3 +1,6 @@
+# Convention: imports go at the top of the file.
+import random
+
 # =====================================================================
 #  student_config.py
 #
@@ -46,11 +49,13 @@
 #  The game always starts from Core/main.py, never from this file.
 # =====================================================================
 
-# title shown at the top of the window
-window_title = "Asteroid Defender"
-
 # name shown in the HUD
-player_name = "Nova"
+# Text is a sequence of characters: take a slice of it.
+full_name = "Nova Starfighter"
+player_name = full_name[:4]
+
+# title shown at the top of the window
+window_title = f"Asteroid Defender - pilot {player_name}"
 
 # amount of ammunition: the ship can fire
 nb_ammo = 40
@@ -96,3 +101,33 @@ bonus_threshold = 500
 
 # duration of the multiplier, in seconds
 bonus_duration = 5.0
+
+# --- Chapter 5: collections and randomness -------------------------------
+
+# A list: the colours of the bonuses that drop during play.
+powerup_colors = ["red", "blue", "green"]
+powerup_colors.append("pink")
+
+# A simple dictionary: the effect of each bonus colour.
+# A colour missing from the dictionary gives a bonus that restores a life.
+powerup_effects = {
+    "red": "heal",
+    "blue": "ammo_refill",
+    "green": "shield_up",
+}
+powerup_effects["pink"] = "rapid_fire"
+
+# A dictionary of dictionaries: each weapon paired with its characteristics.
+# Press Tab to switch from one weapon to another.
+weapons = {
+    "laser": {"damage": 1, "cooldown": 8},
+    "cannon": {"damage": 3, "cooldown": 30},
+    "gatling": {"damage": 1, "cooldown": 3},
+}
+
+# A set: the weapons available, with no possible duplicate.
+unlocked_weapons = {"laser", "cannon"}
+
+# A tuple: the starting position, which must not change.
+# The horizontal coordinate is drawn at random on each launch.
+start_position = (random.randint(100, 700), 510)
