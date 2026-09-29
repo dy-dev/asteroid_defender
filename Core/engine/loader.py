@@ -345,6 +345,7 @@ class StudentFeatures:
 
         # --- collections --------------------------------------
         self.powerup_colors = self._val("powerup_colors", [], (list, tuple))
+        self.powerup_effects = self._val("powerup_effects", {}, dict)
         self.start_position = self._val("start_position", C.DEFAULT_START, (tuple, list))
         self.unlocked_weapons = self._val("unlocked_weapons", set(), (set, frozenset))
         raw_weapons = self._val("weapons", {}, dict)

@@ -27,6 +27,8 @@ FROZEN = "frozen"
 # Chapter 4 — pace of the slow-motion loops (engine side, not student side)
 COUNTDOWN_HOLD = C.FPS // 2     # frames a new countdown value stays on screen
 COUNTDOWN_MAX_HOLDS = 20        # beyond this, the countdown runs at frame pace
+# Chapter 5: effects a bonus color can take through powerup_effects
+POWERUP_EFFECTS = ("heal", "ammo_refill", "shield_up", "rapid_fire", "score_bonus")
 BURST_STEP_FRAMES = 8           # frames between two turns of the burst loop
 LOOP_MSG_FRAMES = C.FPS * 8     # how long a student_loops.py error stays on screen
 
@@ -820,8 +822,18 @@ class Game:
             self.powerups.append(
                 PowerUp(x, y, p["color"], p["effect"], p["duration"]))
         else:
-            self.powerups.append(
-                PowerUp(x, y, random.choice(colors), "heal", 0))
+            color = random.choice(colors)
+            effect, duration = "heal", 0
+            if self.current_chapter >= 5:
+                # chapter 5: the effect comes from powerup_effects, by
+                # color; a missing color or an unknown effect heals
+                effect = str(f.powerup_effects.get(color, "heal")).lower()
+                if effect not in POWERUP_EFFECTS:
+                    effect = "heal"
+                if effect in ("score_bonus", "rapid_fire"):
+                    duration = (float(f.bonus_duration)
+                                if f.unlocked.get("bonus_duration") else 5.0)
+            self.powerups.append(PowerUp(x, y, color, effect, duration))
 
     def _apply_powerup(self, p, f=None):
         effect = str(p.effect).lower()
