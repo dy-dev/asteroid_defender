@@ -40,6 +40,9 @@ COLOR_NAMES = {
     "pink": (238, 120, 180),
 }
 
+# effects a bonus color can take through powerup_effects (chapter 5)
+POWERUP_EFFECTS = ("heal", "ammo_refill", "shield_up", "rapid_fire", "score_bonus")
+
 # --- entities ---------------------------------------------------------------
 SHIP_W, SHIP_H = 34, 30
 BULLET_W, BULLET_H = 4, 12
