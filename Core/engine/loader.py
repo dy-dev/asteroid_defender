@@ -30,6 +30,8 @@ from engine.i18n import t
 GAME_STATES = ("lives", "ammo", "score", "shield", "combo", "active_bonus",
                "player_name")
 MAX_SYNTAX_FIXES = 20
+# the answers difficulty_level may give
+DIFFICULTY_LEVELS = ("easy", "normal", "hard")
 # loader.py is in Core/engine/: student_config.py is two levels above
 CONFIG_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -191,14 +193,14 @@ def has_callable(cfg, name):
     return callable(getattr(cfg, name, None))
 
 
-def safe_call(cfg, name, default, *args, on_error=None, **kwargs):
+def safe_call(cfg, name, default, *args, on_error=None, on_none=None, **kwargs):
     """Calls a student function with a safety net.
 
     If the function is missing, raises, or returns None, the default
     is used. No traceback ever reaches the screen. When it raises,
     on_error (if given) receives the exception, so that the game can
-    name the function in its red banner. A None result stays silent:
-    a forgotten return must not be reported as an error.
+    name the function in its red banner. A None result is not an error:
+    on_none (if given) is called, for the yellow warning banner.
     """
     fn = getattr(cfg, name, None)
     if not callable(fn):
@@ -210,6 +212,8 @@ def safe_call(cfg, name, default, *args, on_error=None, **kwargs):
             on_error(exc)
         return default, False
     if result is None:
+        if on_none is not None:
+            on_none()
         return default, False
     return result, True
 
@@ -274,6 +278,8 @@ class StudentFeatures:
         self.problems = []
         self.unlocked = {}
         self.call_error = None      # last error raised by a student function
+        self.call_warnings = []     # (function, message) not yet shown
+        self._warned = set()        # functions already warned about
 
     # -- utilitaires internes -------------------------------------------------
     def _val(self, name, default, expected=None):
@@ -401,28 +407,60 @@ class StudentFeatures:
 
     # -- student function calls, always protected ----------------------------
 
-    def _call(self, name, default, *args):
-        """safe_call that keeps the error of a function that raises."""
+    def _call(self, name, default, *args, none_key="warn_none_value"):
+        """safe_call that keeps the error of a function that raises and
+        the warning of a function that returns nothing (none_key: its
+        text, None when returning nothing is normal)."""
         def remember(exc):
             self.call_error = t("error_function", name=name,
                                 kind=type(exc).__name__, msg=exc)
-        return safe_call(self.cfg, name, default, *args, on_error=remember)
+        def nothing():
+            if none_key:
+                self._warn(name, t(none_key, name=name))
+        return safe_call(self.cfg, name, default, *args, on_error=remember,
+                         on_none=nothing)
 
     def pop_call_error(self):
         """Last error raised by a student function, then forgotten."""
         err, self.call_error = self.call_error, None
         return err
 
+    def _warn(self, name, msg):
+        """Keeps a warning about a student function, once per function."""
+        if name not in self._warned:
+            self._warned.add(name)
+            self.call_warnings.append((name, msg))
+
+    def pop_call_warnings(self):
+        """Warnings about student functions not shown yet, then forgotten."""
+        found, self.call_warnings = self.call_warnings, []
+        return found
+
+    def _warn_type(self, name, expected_key):
+        self._warn(name, t("warn_bad_type", name=name, expected=t(expected_key)))
+
     def difficulty(self, score):
-        value, _ = self._call("difficulty_level", "easy", score)
+        value, ok = self._call("difficulty_level", "easy", score)
+        if ok and str(value).lower() not in DIFFICULTY_LEVELS:
+            self._warn("difficulty_level", t(
+                "warn_bad_answer", name="difficulty_level",
+                value=f'"{value}"' if isinstance(value, str) else repr(value),
+                default="easy"))
         return value if isinstance(value, str) else "easy"
 
     def row_positions(self, n):
         default = [C.WIDTH // 2]
         value, ok = self._call("spawn_row", default, n)
-        if not ok or not isinstance(value, (list, tuple)):
+        if not ok:
+            return default
+        if not isinstance(value, (list, tuple)):
+            self._warn_type("spawn_row", "expected_number_list")
             return default
         clean = [p for p in value if isinstance(p, (int, float))]
+        if not clean:
+            self._warn_type("spawn_row", "expected_number_list")
+        elif len(clean) < len(value):
+            self._warn("spawn_row", t("warn_spawn_row_items", name="spawn_row"))
         return clean or default
 
     def keep_firing(self, ammo, trigger_held):
@@ -439,7 +477,8 @@ class StudentFeatures:
         else:
             default = t("default_hud_line", name=display_name(name),
                         score=score, ammo=ammo)
-        value, ok = self._call("hud_text", default, name, score, ammo)
+        value, ok = self._call("hud_text", default, name, score, ammo,
+                               none_key="warn_none_text")
         return str(value) if ok else default
 
     def game_over(self, name, score, chapter=1):
@@ -448,12 +487,16 @@ class StudentFeatures:
         else:
             default = t("default_game_over_line", name=display_name(name),
                         score=score)
-        value, ok = self._call("game_over_text", default, name, score)
+        value, ok = self._call("game_over_text", default, name, score,
+                               none_key="warn_none_text")
         return str(value) if ok else default
 
     def compute_damage(self, base, multiplier=1.0):
         value, ok = self._call("damage", base, base, multiplier)
-        if not ok or not isinstance(value, (int, float)):
+        if not ok:
+            return base
+        if not isinstance(value, (int, float)):
+            self._warn_type("damage", "expected_number")
             return base
         return int(value)
 
@@ -466,10 +509,12 @@ class StudentFeatures:
             count, speed = value
             return int(count), float(speed)
         except (TypeError, ValueError):
+            self._warn_type("spawn_pattern", "expected_number_pair")
             return default
 
     def save_score(self, name, score):
-        self._call("save_highscore", None, name, score)
+        # a function that only writes a file returns nothing: no warning
+        self._call("save_highscore", None, name, score, none_key=None)
 
     def load_scores(self):
         value, ok = self._call("load_highscores", [])
