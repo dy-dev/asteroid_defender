@@ -11,6 +11,7 @@ import pygame
 from engine import assets
 from engine import config as C
 from engine import hud
+from engine import notices
 from engine.entities import Asteroid, Bullet, PowerUp, Ship, StudentEnemy
 from engine.i18n import t
 from engine.loader import StudentFeatures
@@ -28,9 +29,10 @@ FROZEN = "frozen"
 COUNTDOWN_HOLD = C.FPS // 2     # frames a new countdown value stays on screen
 COUNTDOWN_MAX_HOLDS = 20        # beyond this, the countdown runs at frame pace
 # Chapter 5: effects a bonus color can take through powerup_effects
-POWERUP_EFFECTS = ("heal", "ammo_refill", "shield_up", "rapid_fire", "score_bonus")
+POWERUP_EFFECTS = C.POWERUP_EFFECTS
 BURST_STEP_FRAMES = 8           # frames between two turns of the burst loop
 LOOP_MSG_FRAMES = C.FPS * 8     # how long a student_loops.py error stays on screen
+WARN_MSG_FRAMES = C.FPS * 6     # how long the yellow warning banner stays on screen
 
 
 class Game:
@@ -62,9 +64,15 @@ class Game:
         self.last_fired = 0         # value of fired at the end of the last burst
         self.loop_turns = 0         # turns done by the loop currently / last run
         self.loop_msg = None        # (text, frames, footer) red error banner
+        # yellow banner: what the game ignored or replaced, without blocking
+        self.config_warnings = []   # student_config.py, checked at each load
+        self.function_warnings = [] # student functions, once per launch
+        self._warned_functions = set()
+        self.warn_frames = 0
         self.repair_active = False
         self.reset()
         self._show_config_problems()
+        self._check_config_warnings()
 
     # ------------------------------------------------------------------
     def _load_chapter(self):
@@ -218,6 +226,7 @@ class Game:
                 self.features = StudentFeatures().load()
                 self.reset()
                 self._show_config_problems()
+                self._check_config_warnings()
             elif event.key == pygame.K_TAB and self.state == PLAYING:
                 self._cycle_weapon()
             elif event.key == pygame.K_b and self.state == PLAYING:
@@ -257,6 +266,7 @@ class Game:
 
     def update(self):
         self._show_call_error()
+        self._collect_function_warnings()
         if self.state == COUNTDOWN:
             if self.countdown_student and self.slow_loops:
                 # Student's while loop drives the countdown. Pace: one
@@ -616,6 +626,34 @@ class Game:
         if err:
             self.loop_msg = ("student_config.py · " + err, LOOP_MSG_FRAMES,
                              "function_banner_footer")
+
+    @property
+    def warnings(self):
+        return self.config_warnings + self.function_warnings
+
+    def _check_config_warnings(self):
+        """Every chapter: what student_config.py holds that the game
+        ignored or replaced, in the yellow banner at launch and at each
+        restart."""
+        catalog = [(e[0], e[4]) for e in hud.CATALOG + hud.BONUS]
+        try:
+            self.config_warnings = notices.check_config(
+                self.features, self.current_chapter, catalog)
+        except Exception:  # noqa: BLE001 - a warning must never stop the game
+            self.config_warnings = []
+        if self.warnings:
+            self.warn_frames = WARN_MSG_FRAMES
+
+    def _collect_function_warnings(self):
+        """A student function that returned nothing or an unexpected
+        answer: warned once per function and per launch (a restart
+        does not repeat it)."""
+        for name, msg in self.features.pop_call_warnings():
+            if name in self._warned_functions:
+                continue
+            self._warned_functions.add(name)
+            self.function_warnings.append(msg)
+            self.warn_frames = WARN_MSG_FRAMES
 
     def _update_bullets(self):
         for b in self.bullets:
@@ -1140,14 +1178,24 @@ class Game:
 
         # red error banner (student_config.py problems, student_loops.py
         # errors): stays a few seconds, frozen in pause while it runs
+        banner_top = C.HEIGHT - 140
         if self.loop_msg:
             msg, frames, footer = self.loop_msg
             if frames > 0:
-                hud.draw_loop_error(s, self.fonts, msg, footer)
+                banner_top = hud.draw_loop_error(s, self.fonts, msg, footer) - 8
                 if self.state != PAUSED:
                     self.loop_msg = (msg, frames - 1, footer)
             else:
                 self.loop_msg = None
+
+        # yellow warning banner: the first warning and the total, above
+        # the red banner when both show; hidden and frozen in pause, where
+        # the full list shows
+        warnings = self.warnings
+        if self.warn_frames > 0 and warnings and self.state != PAUSED:
+            hud.draw_warning_banner(s, self.fonts, warnings[0], len(warnings),
+                                    banner_top)
+            self.warn_frames -= 1
 
         if self.state == GAMEOVER:
             hud.draw_game_over(s, self.fonts, self)
@@ -1156,7 +1204,8 @@ class Game:
                 s, self.fonts, self.features,
                 self.current_chapter, self._hover_zones(),
                 pygame.mouse.get_pos(),
-                set(self.slow_loops.loops) if self.slow_loops else ())
+                set(self.slow_loops.loops) if self.slow_loops else (),
+                self.warnings)
 
         if self.state == PLAYING and self.wave == 0:
             hud.text(s, self.fonts.small,
