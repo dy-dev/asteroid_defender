@@ -519,7 +519,8 @@ def draw_loop_error(surf, fonts, msg, footer="loop_banner_footer"):
     """Red error banner: student_config.py problems (chapter 1+) and
     student_loops.py errors (chapter 4: infinite loop cut by the safety
     net, error in a loop body, syntax error). The game goes on: only the
-    faulty part is set aside. `footer`: i18n key of the last line."""
+    faulty part is set aside. `footer`: i18n key of the last line.
+    Returns the top of the banner (the yellow banner goes above it)."""
     lines = _wrap(fonts.small, msg, C.WIDTH - 60)
     h = 14 + 20 * len(lines) + 18
     y = C.HEIGHT - h - 140      # above the ship and its charge bar
@@ -532,6 +533,35 @@ def draw_loop_error(surf, fonts, msg, footer="loop_banner_footer"):
         text(surf, fonts.small, line, 24, cy, (255, 170, 170))
         cy += 20
     text(surf, fonts.tiny, t(footer), 24, cy + 2, (220, 180, 180))
+    return y
+
+
+WARN_BG = (66, 54, 10, 230)
+WARN_TEXT = (255, 228, 140)
+WARN_SOFT = (230, 210, 150)
+
+
+def warning_count(n):
+    return t("warn_count_one") if n == 1 else t("warn_count_many", n=n)
+
+
+def draw_warning_banner(surf, fonts, msg, count, bottom=C.HEIGHT - 140):
+    """Yellow banner: something the game ignored or replaced without
+    blocking (unknown name, color, effect, a function that returned
+    nothing...). Shows one warning and the total; the full list is in
+    pause. `bottom`: lower edge, above the red banner when both show."""
+    lines = _wrap(fonts.small, msg, C.WIDTH - 60)
+    h = 14 + 20 * len(lines) + 18
+    y = bottom - h
+    panel = pygame.Surface((C.WIDTH - 24, h), pygame.SRCALPHA)
+    panel.fill(WARN_BG)
+    surf.blit(panel, (12, y))
+    pygame.draw.rect(surf, C.AMBER, (12, y, C.WIDTH - 24, h), 2, border_radius=6)
+    cy = y + 8
+    for line in lines:
+        text(surf, fonts.small, line, 24, cy, WARN_TEXT)
+        cy += 20
+    text(surf, fonts.tiny, warning_count(count), 24, cy + 2, WARN_SOFT)
 
 
 def _wrap(font, msg, width):
@@ -704,11 +734,12 @@ def visible_entries(features, current_chapter, zone):
 
 
 def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos,
-               written_events=()):
+               written_events=(), warnings=()):
     """Pause overlay, zone frames and tooltip on hover.
 
     `zones`: dict zone -> pygame.Rect (provided by game.py).
     `written_events`: loop events already written in student_loops.py.
+    `warnings`: every warning of the yellow banner, listed in full.
     """
     overlay = pygame.Surface((C.WIDTH, C.HEIGHT), pygame.SRCALPHA)
     overlay.fill((8, 10, 18, 180))
@@ -726,6 +757,7 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos,
     text(surf, fonts.small, intro, 24, 54, C.GREY)
 
     # error message from student_config.py, if any
+    box_y = 80
     if features.problem:
         lines = _wrap(fonts.small, t("config_problem", problem=features.problem),
                       C.WIDTH - 68)
@@ -738,6 +770,21 @@ def draw_pause(surf, fonts, features, current_chapter, zones, mouse_pos,
             cy += 20
         text(surf, fonts.tiny, t("config_problem_help"),
              34, cy, (220, 180, 180))
+        box_y = 80 + h + 6
+
+    # warnings: the full list behind the yellow banner
+    if warnings:
+        lines = []
+        for msg in warnings:
+            lines += _wrap(fonts.small, "· " + msg, C.WIDTH - 68)
+        h = 12 + 16 + 20 * len(lines) + 4
+        pygame.draw.rect(surf, (56, 46, 10), (24, box_y, C.WIDTH - 48, h),
+                         border_radius=4)
+        text(surf, fonts.tiny, t("warn_pause_title"), 34, box_y + 6, WARN_SOFT)
+        cy = box_y + 6 + 16
+        for line in lines:
+            text(surf, fonts.small, line, 34, cy, WARN_TEXT)
+            cy += 20
 
     # frames around the hoverable zones
     hovered_zone = None
