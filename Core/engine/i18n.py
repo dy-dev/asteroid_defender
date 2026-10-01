@@ -303,6 +303,67 @@ TEXTS = {
         "en": "syntax error on line {line}: {msg}",
     },
 
+    # --- warnings (every chapter, yellow banner) --------------------------
+    # What the game ignored or replaced without blocking. {color},
+    # {effect}, {field}, {weapon} and {value} arrive already quoted.
+    "warn_unknown_name": {
+        "fr": "{name} : nom inconnu. Vouliez-vous dire {hint} ?",
+        "en": "{name}: unknown name. Did you mean {hint}?",
+    },
+    "warn_unknown_color": {
+        "fr": "{where} : couleur inconnue {color} (couleurs connues : {known})",
+        "en": "{where}: unknown colour {color} (known colours: {known})",
+    },
+    "warn_unknown_effect": {
+        "fr": "powerup_effects : effet inconnu {effect} pour {color} : heal utilisé "
+              "(effets connus : {known})",
+        "en": "powerup_effects: unknown effect {effect} for {color}: heal used "
+              "(known effects: {known})",
+    },
+    "warn_weapon_key": {
+        "fr": "weapons[{weapon}] : clé inconnue {field}, ignorée (clés lues : {known})",
+        "en": "weapons[{weapon}]: unknown key {field}, ignored (keys read: {known})",
+    },
+    "warn_unlocked_missing": {
+        "fr": "unlocked_weapons : {weapon} absent de weapons, ignoré",
+        "en": "unlocked_weapons: {weapon} is not in weapons, ignored",
+    },
+    "warn_none_text": {
+        "fr": "{name} n'a rien renvoyé : texte par défaut utilisé",
+        "en": "{name} returned nothing: default text used",
+    },
+    "warn_none_value": {
+        "fr": "{name} n'a rien renvoyé : valeur par défaut utilisée",
+        "en": "{name} returned nothing: default value used",
+    },
+    "warn_bad_answer": {
+        "fr": "{name} : {value} n'est pas une réponse attendue : {default} utilisé",
+        "en": "{name}: {value} is not an expected answer: {default} used",
+    },
+    "warn_bad_type": {
+        "fr": "{name} ne renvoie pas {expected} : valeur par défaut utilisée",
+        "en": "{name} does not return {expected}: default value used",
+    },
+    "warn_spawn_row_items": {
+        "fr": "{name} : les valeurs qui ne sont pas des nombres sont ignorées",
+        "en": "{name}: the values that are not numbers are ignored",
+    },
+    "expected_number": {"fr": "un nombre", "en": "a number"},
+    "expected_number_list": {"fr": "une liste de nombres", "en": "a list of numbers"},
+    "expected_number_pair": {"fr": "deux nombres", "en": "two numbers"},
+    "warn_count_one": {
+        "fr": "1 avertissement, détail en pause (Échap)",
+        "en": "1 warning, details in pause (Esc)",
+    },
+    "warn_count_many": {
+        "fr": "{n} avertissements, détail en pause (Échap)",
+        "en": "{n} warnings, details in pause (Esc)",
+    },
+    "warn_pause_title": {
+        "fr": "Avertissements : le jeu a ignoré ou remplacé ces éléments, sans bloquer.",
+        "en": "Warnings: the game ignored or replaced these items, without stopping.",
+    },
+
     # --- startup checks (Core/main.py, printed in the console) ------------
     "py_wrong_title": {
         "fr": "MAUVAISE VERSION DE PYTHON",
