@@ -9,7 +9,9 @@ with an empty file.
 """
 
 import ast
+import importlib
 import io
+import logging
 import os
 import re
 import sys
@@ -193,6 +195,47 @@ def has_callable(cfg, name):
     return callable(getattr(cfg, name, None))
 
 
+# ----------------------------------------------------------------------
+#  Journal: missing function
+# ----------------------------------------------------------------------
+#  Without this line, "the function is wrong" and "the function is not
+#  read" look the same. Only functions of the current chapter or an
+#  earlier one are reported: a later concept never shows up.
+
+log = logging.getLogger("asteroid_defender")
+_reported = set()       # functions already reported during this launch
+
+
+def _current_chapter():
+    """CURRENT_CHAPTER from Core/chapter.py. Never raises. Default: 1."""
+    try:
+        module = sys.modules.get("chapter") or importlib.import_module("chapter")
+        value = getattr(module, "CURRENT_CHAPTER", 1)
+        return value if isinstance(value, int) else 1
+    except Exception:  # noqa: BLE001
+        return 1
+
+
+def report_missing_function(name):
+    """Writes one journal line naming the missing function and the
+    chapter that expects it. Never raises."""
+    if name in _reported:
+        return
+    try:
+        from engine.hud import CATALOG
+        chapters = {entry[0]: entry[4] for entry in CATALOG}
+        chapter = chapters.get(name)
+        if chapter is None or chapter > _current_chapter():
+            return
+        _reported.add(name)
+        msg = t("missing_function_log", name=name, chapter=chapter)
+        # a console that cannot show accents must not print a traceback
+        enc = getattr(sys.stderr, "encoding", None) or "ascii"
+        log.warning(msg.encode(enc, errors="replace").decode(enc))
+    except Exception:  # noqa: BLE001
+        return
+
+
 def safe_call(cfg, name, default, *args, on_error=None, on_none=None, **kwargs):
     """Calls a student function with a safety net.
 
@@ -290,6 +333,8 @@ class StudentFeatures:
     def _fn(self, name):
         ok = has_callable(self.cfg, name)
         self.unlocked[name] = ok
+        if not ok:
+            report_missing_function(name)
         return ok
 
     # -- chargement -----------------------------------------------------------

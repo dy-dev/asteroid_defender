@@ -79,6 +79,12 @@ TEXTS = {
         "fr": "Fin de partie : game_over_text() à écrire",
         "en": "Game over: game_over_text() to write",
     },
+    "missing_function_log": {
+        "fr": "student_config.py : fonction {name}() absente, attendue au "
+              "chapitre {chapter}. Valeur par défaut utilisée.",
+        "en": "student_config.py: function {name}() missing, expected in "
+              "chapter {chapter}. Default value used.",
+    },
     "default_game_over_line": {
         "fr": "{name} — Partie terminée — score : {score}",
         "en": "{name} — Game over — score: {score}",
