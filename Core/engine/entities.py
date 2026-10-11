@@ -8,6 +8,7 @@ file and runs anywhere without missing assets.
 
 import math
 import random
+import zlib
 
 import pygame
 
@@ -231,8 +232,10 @@ class StudentEnemy:
             assets.blit_centered(surf, image, cx, cy)
             return
         name = type(self.obj).__name__
-        # one tint per type, so each enemy type stands out
-        tint = C.COLOR_NAMES[list(C.COLOR_NAMES)[hash(name) % len(C.COLOR_NAMES)]]
+        # one tint per type, so each enemy type stands out. crc32 and not
+        # hash(): string hashes change at every launch (PYTHONHASHSEED)
+        index = zlib.crc32(name.encode("utf-8")) % len(C.COLOR_NAMES)
+        tint = C.COLOR_NAMES[list(C.COLOR_NAMES)[index]]
         pygame.draw.circle(surf, tint, (cx, cy), self.radius)
         pygame.draw.circle(surf, C.WHITE, (cx, cy), self.radius, 2)
         pygame.draw.circle(surf, C.DARK, (cx, cy), max(3, self.radius // 3))
