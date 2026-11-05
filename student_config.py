@@ -55,6 +55,12 @@ import random
 full_name = "Nova Starfighter"
 player_name = full_name[:4]
 
+# --- Chapitre 6 : afficher et demander --------------------------------
+# Ces deux lignes s'executent au lancement, avant l'ouverture de la fenetre.
+print("Bienvenue dans Asteroid Defender")
+player_name = input("Quel est ton nom de pilote ? ")
+
+
 # titre affiché en haut de la fenêtre
 window_title = f"Asteroid Defender - pilote {player_name}"
 
@@ -132,3 +138,45 @@ unlocked_weapons = {"laser", "canon"}
 # Un tuple : la position de départ, qui ne doit pas changer.
 # L'abscisse est tirée au hasard à chaque lancement.
 start_position = (random.randint(100, 700), 510)
+
+# --- Chapitre 6 : les fonctions ------------------------------------------
+# Le jeu appelle ces fonctions au moment où il en a besoin.
+# Chacune est définie une seule fois, mais appelée pendant toute la partie.
+
+def hud_text(name, score, ammo):
+    """Compose la ligne d'information du haut de l'écran."""
+    return f"{name} | Score : {score} | Munitions : {ammo}"
+
+def game_over_text(name, score):
+    """Compose le message de fin de partie."""
+    return f"Fin de partie, {name} : {score} points"
+
+def difficulty_level(score):
+    """Renvoie le palier de difficulté selon le score."""
+    if score < 1000:
+        return "easy"
+    elif score < 3000:
+        return "normal"
+    else:
+        return "hard"
+
+def should_keep_firing(ammo, trigger_held):
+    """Autorise le tir s'il reste des munitions et que la touche est tenue."""
+    return ammo > 0 and trigger_held
+
+def damage(base, multiplier=1.0):
+    """Dégâts infligés ; le multiplicateur est facultatif."""
+    return int(base * multiplier)
+
+def spawn_pattern(wave):
+    """Nombre d'ennemis et vitesse pour la vague indiquée."""
+    count = 3 + wave
+    speed = 2.0 + wave * 0.3
+    return count, speed
+
+def spawn_row(n):
+    """Positions horizontales de n ennemis, toujours dans l'écran."""
+    positions = []
+    for i in range(n):
+        positions.append(60 + (i * 110) % 680)
+    return positions
