@@ -1023,6 +1023,8 @@ class Game:
             return self.features.difficulty(self.score)
         if key == "powerup_colors":
             return len(self.features.powerup_colors)
+        if key == "custom_powerups":
+            return len(self.features.powerups)
         if key == "last_damage":
             return "-" if self.last_damage is None else self.last_damage
         return "?"
