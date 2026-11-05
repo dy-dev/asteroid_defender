@@ -12,6 +12,7 @@ import types
 
 from engine import config as C
 from engine.i18n import t
+from engine.loader import field
 
 
 WEAPON_KEYS = ("damage", "cooldown")
@@ -108,7 +109,13 @@ def check_config(features, chapter, catalog):
                 warnings.append(t("warn_weapon_key", weapon=_quoted(wname),
                                   field=_quoted(key), known=", ".join(WEAPON_KEYS)))
     if checked("unlocked_weapons"):
+        # chapter 8: the single weapon object counts as a weapon of the
+        # game, under its own name (the loader adds it to the table)
+        names = set(raw_weapons or {})
+        single = getattr(cfg, "weapon", None) if checked("weapon") else None
+        if single is not None:
+            names.add(field(single, "name", "weapon"))
         for wname in sorted(features.unlocked_weapons, key=str):
-            if wname not in (raw_weapons or {}):
+            if wname not in names:
                 warnings.append(t("warn_unlocked_missing", weapon=_quoted(wname)))
     return warnings
