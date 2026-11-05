@@ -174,9 +174,34 @@ def spawn_pattern(wave):
     speed = 2.0 + wave * 0.3
     return count, speed
 
+# --- Chapitre 7 : portée, modification, récursion -------------------------
+
+# Difficulté générale : multiplie la vitesse de toutes les vagues.
+GLOBAL_DIFFICULTY = 1.0
+
+def harder(level):
+    """Renvoie une difficulté plus élevée (forme sans global)."""
+    return level * 1.5
+
+GLOBAL_DIFFICULTY = harder(GLOBAL_DIFFICULTY)
+
+# Une liste reçue par une fonction peut être modifiée.
+def add_gold(colors):
+    """Ajoute une couleur à la liste reçue : la liste d'origine change."""
+    colors.append("gold")
+
+add_gold(powerup_colors)
+
+# Un nombre reçu par une fonction ne peut pas être modifié.
+def try_refill(n):
+    """Renvoie le nombre augmenté ; il faut réaffecter pour que ça compte."""
+    return n + 50
+
+nb_ammo = try_refill(nb_ammo)
+
+# Version récursive : remplace la boucle du chapitre 6.
 def spawn_row(n):
-    """Positions horizontales de n ennemis, toujours dans l'écran."""
-    positions = []
-    for i in range(n):
-        positions.append(60 + (i * 110) % 680)
-    return positions
+    """Positions de n ennemis, construites par récursion."""
+    if n == 0:
+        return []
+    return spawn_row(n - 1) + [60 + ((n - 1) * 110) % 680]
