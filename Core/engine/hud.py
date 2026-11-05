@@ -220,13 +220,15 @@ CATALOG = [
     ("powerups",
      {"fr": "Bonus personnalisés", "en": "Custom bonuses"},
      "object",
-     {"fr": "Les power-ups, en objets", "en": "The power-ups, as objects"},
-     99, "field"),
+     {"fr": "Des bonus définis par l'étudiant, avec leur couleur, leur effet et leur durée",
+      "en": "Bonuses defined by the student, with their colour, effect and duration"},
+     8, "field"),
     ("weapon",
      {"fr": "Arme encapsulée", "en": "Encapsulated weapon"},
      "object",
-     {"fr": "Une arme qui gère son cooldown", "en": "A weapon that manages its cooldown"},
-     99, "ship"),
+     {"fr": "Une arme qui porte elle-même ses caractéristiques",
+      "en": "A weapon that carries its own characteristics"},
+     8, "ship"),
     ("enemy_types",
      {"fr": "Bestiaire d'ennemis", "en": "Enemy bestiary"},
      "variable",
@@ -476,6 +478,7 @@ DEBUG_ROWS = [
     ("debug_colours", "powerup_colors", 5),
     ("debug_wave", "wave", 6),
     ("debug_difficulty", "difficulty", 6),
+    ("debug_custom_bonuses", "custom_powerups", 8),
 ]
 
 

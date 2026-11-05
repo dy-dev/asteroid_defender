@@ -126,6 +126,7 @@ TEXTS = {
     "debug_colours": {"fr": "couleurs", "en": "colours"},
     "debug_wave": {"fr": "vague", "en": "wave"},
     "debug_difficulty": {"fr": "difficulté", "en": "difficulty"},
+    "debug_custom_bonuses": {"fr": "bonus définis", "en": "custom bonuses"},
 
     # --- game over --------------------------------------------------------
     "game_over_title": {"fr": "PARTIE TERMINÉE", "en": "GAME OVER"},
