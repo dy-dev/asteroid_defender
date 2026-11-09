@@ -520,6 +520,9 @@ class StudentFeatures:
         return value if isinstance(value, str) else "easy"
 
     def row_positions(self, n):
+        """x positions, or (x, height) pairs: the height raises that
+        enemy above its row (0 = on the row), so a formation can leave
+        the single horizontal line."""
         default = [C.WIDTH // 2]
         value, ok = self._call("spawn_row", default, n)
         if not ok:
@@ -527,7 +530,13 @@ class StudentFeatures:
         if not isinstance(value, (list, tuple)):
             self._warn_type("spawn_row", "expected_number_list")
             return default
-        clean = [p for p in value if isinstance(p, (int, float))]
+        clean = []
+        for p in value:
+            if isinstance(p, (int, float)) and not isinstance(p, bool):
+                clean.append(p)
+            elif (isinstance(p, (list, tuple)) and len(p) == 2
+                  and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in p)):
+                clean.append((p[0], p[1]))
         if not clean:
             self._warn_type("spawn_row", "expected_number_list")
         elif len(clean) < len(value):

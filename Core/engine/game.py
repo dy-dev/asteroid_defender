@@ -981,8 +981,12 @@ class Game:
 
         for i in range(count):
             x = positions[i % len(positions)]
+            height = 0
+            if isinstance(x, tuple):
+                x, height = x
+                height = max(0, min(300, float(height)))
             x = max(20, min(C.WIDTH - 20, float(x)))
-            y = -30 - (i // max(1, len(positions))) * 60
+            y = -30 - (i // max(1, len(positions))) * 60 - height
             if types:
                 cls = types[i % len(types)]
                 try:
