@@ -246,3 +246,52 @@ weapons = {
     "canon": Weapon("canon", 3, 30),
     "mitraille": Weapon("mitraille", 1, 3),
 }
+
+# --- Chapitre 9 : héritage et polymorphisme ------------------------------
+# Une classe de base décrit ce que tous les ennemis ont en commun.
+# Chaque classe dérivée ne redit que ce qui la distingue.
+
+class Enemy:
+    """Ce que tout ennemi sait faire : exister quelque part, et descendre."""
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.hp = 1
+        self.speed = 2
+
+    def move(self):
+        """Descente simple, en ligne droite."""
+        self.y = self.y + self.speed
+
+class Rusher(Enemy):
+    """Plus rapide, aussi fragile."""
+
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.speed = 5
+
+class Tank(Enemy):
+    """Lent, mais il encaisse plusieurs tirs."""
+
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.speed = 1
+        self.hp = 3
+
+class Zigzag(Enemy):
+    """Descend en zigzag : move() est redéfinie entièrement."""
+
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self._start = x          # interne : position de départ
+        self._step = 3           # interne : décalage par image
+
+    def move(self):
+        self.y = self.y + self.speed
+        self.x = self.x + self._step
+        if abs(self.x - self._start) > 60:
+            self._step = -self._step
+
+# Le jeu pioche dans cette liste : plusieurs sortes dans la même vague.
+enemy_types = [Enemy, Rusher, Tank, Zigzag]
