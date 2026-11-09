@@ -232,8 +232,9 @@ CATALOG = [
     ("enemy_types",
      {"fr": "Bestiaire d'ennemis", "en": "Enemy bestiary"},
      "variable",
-     {"fr": "Des ennemis aux comportements variés", "en": "Enemies with varied behaviors"},
-     99, "field"),
+     {"fr": "Une liste de sortes, et non d'ennemis déjà créés. Chaque sorte accepte x et y, et sait avancer avec move.",
+      "en": "A list of kinds, not of enemies already created. Each kind accepts x and y, and knows how to move with move."},
+     9, "field"),
     ("save_highscore",
      {"fr": "Sauvegarde des scores", "en": "Score saving"},
      "function",
@@ -479,6 +480,7 @@ DEBUG_ROWS = [
     ("debug_wave", "wave", 6),
     ("debug_difficulty", "difficulty", 6),
     ("debug_custom_bonuses", "custom_powerups", 8),
+    ("debug_enemy_kinds", "enemy_kinds", 9),
 ]
 
 

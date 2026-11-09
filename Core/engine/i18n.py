@@ -127,6 +127,7 @@ TEXTS = {
     "debug_wave": {"fr": "vague", "en": "wave"},
     "debug_difficulty": {"fr": "difficulté", "en": "difficulty"},
     "debug_custom_bonuses": {"fr": "bonus définis", "en": "custom bonuses"},
+    "debug_enemy_kinds": {"fr": "sortes d'ennemis", "en": "enemy kinds"},
 
     # --- game over --------------------------------------------------------
     "game_over_title": {"fr": "PARTIE TERMINÉE", "en": "GAME OVER"},

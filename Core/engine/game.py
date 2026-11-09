@@ -943,7 +943,7 @@ class Game:
         if types:
             cls = types[random.randrange(len(types))]
             try:
-                self.enemies.append(StudentEnemy(cls(x, y), speed))
+                self.enemies.append(StudentEnemy(cls(x, y), speed, f.enemy_tints.get(cls)))
             except Exception:  # noqa: BLE001
                 self.enemies.append(self._new_asteroid(x, y, speed))
         else:
@@ -990,7 +990,7 @@ class Game:
                 except Exception:  # noqa: BLE001
                     self.enemies.append(self._new_asteroid(x, y, speed))
                     continue
-                self.enemies.append(StudentEnemy(inst, speed))
+                self.enemies.append(StudentEnemy(inst, speed, f.enemy_tints.get(cls)))
             else:
                 self.enemies.append(self._new_asteroid(x, y, speed))
 
@@ -1025,6 +1025,8 @@ class Game:
             return len(self.features.powerup_colors)
         if key == "custom_powerups":
             return len(self.features.powerups)
+        if key == "enemy_kinds":
+            return len(set(self.features.enemy_types))
         if key == "last_damage":
             return "-" if self.last_damage is None else self.last_damage
         return "?"
