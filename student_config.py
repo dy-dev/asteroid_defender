@@ -245,3 +245,52 @@ weapons = {
     "cannon": Weapon("cannon", 3, 30),
     "gatling": Weapon("gatling", 1, 3),
 }
+
+# --- Chapter 9: inheritance and polymorphism ------------------------------
+# A base class describes what all enemies have in common.
+# Each derived class only states what sets it apart.
+
+class Enemy:
+    """What every enemy can do: exist somewhere, and move down."""
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.hp = 1
+        self.speed = 2
+
+    def move(self):
+        """Simple descent, in a straight line."""
+        self.y = self.y + self.speed
+
+class Rusher(Enemy):
+    """Faster, just as fragile."""
+
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.speed = 5
+
+class Tank(Enemy):
+    """Slow, but it takes several hits."""
+
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.speed = 1
+        self.hp = 3
+
+class Zigzag(Enemy):
+    """Moves down in a zigzag: move() is entirely redefined."""
+
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self._start = x          # internal: starting position
+        self._step = 3           # internal: shift per frame
+
+    def move(self):
+        self.y = self.y + self.speed
+        self.x = self.x + self._step
+        if abs(self.x - self._start) > 60:
+            self._step = -self._step
+
+# The game draws from this list: several kinds in the same wave.
+enemy_types = [Enemy, Rusher, Tank, Zigzag]
