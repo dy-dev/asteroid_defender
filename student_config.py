@@ -221,6 +221,9 @@ class Weapon:
     """Une arme : son nom, ses dégâts, sa cadence."""
 
     def __init__(self, name, damage, cooldown):
+        # Chapitre 10 : une arme aux dégâts ou à la cadence négatifs n'a pas de sens.
+        if damage < 0 or cooldown < 0:
+            raise ValueError(f"{name} : dégâts et cadence ne peuvent pas être négatifs")
         self.name = name
         self.damage = damage
         self.cooldown = cooldown
@@ -295,3 +298,14 @@ class Zigzag(Enemy):
 
 # Le jeu pioche dans cette liste : plusieurs sortes dans la même vague.
 enemy_types = [Enemy, Rusher, Tank, Zigzag]
+
+# --- Chapitre 10 : voir ce qui se passe, et traiter ce qui échoue --------
+# La fiche des bonus, affichée à la console au lancement.
+# "gold" a été ajoutée au chapitre 7 sans effet : la lecture est protégée.
+
+for color in powerup_colors:
+    try:
+        effect = powerup_effects[color]
+    except KeyError:            # couleur sans effet : le jeu lui fait rendre une vie
+        effect = "heal"
+    print(color, effect)
