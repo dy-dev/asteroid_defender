@@ -220,6 +220,9 @@ class Weapon:
     """A weapon: its name, its damage, its cooldown."""
 
     def __init__(self, name, damage, cooldown):
+        # Chapter 10: a weapon with negative damage or cooldown makes no sense.
+        if damage < 0 or cooldown < 0:
+            raise ValueError(f"{name}: damage and cooldown cannot be negative")
         self.name = name
         self.damage = damage
         self.cooldown = cooldown
@@ -294,3 +297,14 @@ class Zigzag(Enemy):
 
 # The game draws from this list: several kinds in the same wave.
 enemy_types = [Enemy, Rusher, Tank, Zigzag]
+
+# --- Chapter 10: seeing what happens, and handling what fails -------------
+# The bonus card, printed in the console at launch.
+# "gold" was added in chapter 7 without an effect: the lookup is protected.
+
+for color in powerup_colors:
+    try:
+        effect = powerup_effects[color]
+    except KeyError:            # colour without an effect: the game makes it restore a life
+        effect = "heal"
+    print(color, effect)
