@@ -204,3 +204,44 @@ def spawn_row(n):
     if n == 0:
         return []
     return spawn_row(n - 1) + [60 + ((n - 1) * 110) % 680]
+
+# --- Chapter 8: classes ---------------------------------------------------
+# A class describes; an object exists.
+
+class Bonus:
+    """A bonus that can be picked up: its colour, its effect, its duration."""
+
+    def __init__(self, color, effect, duration):
+        self.color = color
+        self.effect = effect
+        self.duration = duration
+
+class Weapon:
+    """A weapon: its name, its damage, its cooldown."""
+
+    def __init__(self, name, damage, cooldown):
+        self.name = name
+        self.damage = damage
+        self.cooldown = cooldown
+
+    def damage_dealt(self, multiplier=1.0):
+        """Calculates the damage from the weapon's own attributes."""
+        return int(self.damage * multiplier)
+
+# Several objects created from the same class.
+powerups = [
+    Bonus("gold", "score_bonus", 5.0),
+    Bonus("cyan", "shield_up", 0),
+    Bonus("orange", "ammo_refill", 0),
+]
+
+# A fourth weapon, an object from its creation, unlocked for Tab.
+weapon = Weapon("blaster", 2, 8)
+unlocked_weapons.add("blaster")
+
+# The game's weapons, now objects: the game behaves as before.
+weapons = {
+    "laser": Weapon("laser", 1, 8),
+    "cannon": Weapon("cannon", 3, 30),
+    "gatling": Weapon("gatling", 1, 3),
+}
