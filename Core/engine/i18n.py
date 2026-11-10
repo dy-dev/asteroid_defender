@@ -353,8 +353,8 @@ TEXTS = {
         "en": "{name} does not return {expected}: default value used",
     },
     "warn_spawn_row_items": {
-        "fr": "{name} : les valeurs qui ne sont pas des nombres sont ignorées",
-        "en": "{name}: the values that are not numbers are ignored",
+        "fr": "{name} : les valeurs qui ne sont ni des nombres ni des couples de nombres sont ignorées",
+        "en": "{name}: the values that are neither numbers nor pairs of numbers are ignored",
     },
     "expected_number": {"fr": "un nombre", "en": "a number"},
     "expected_number_list": {"fr": "une liste de nombres", "en": "a list of numbers"},

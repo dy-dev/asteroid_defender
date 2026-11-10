@@ -793,6 +793,11 @@ class Game:
         # recurring bonus (model A): a bonus drops at each threshold crossed
         self._check_bonus_threshold(f, enemy.x, enemy.y)
 
+        # the student's bonuses (powerup_colors from chapter 5, powerups
+        # from chapter 8) drop at random from destroyed enemies
+        if f.unlocked.get("powerup_colors") or f.unlocked.get("powerups"):
+            self._spawn_powerup(enemy.x, enemy.y, f)
+
         for _ in range(8):
             self.particles.append([enemy.x, enemy.y,
                                    random.uniform(-3, 3),
@@ -981,8 +986,12 @@ class Game:
 
         for i in range(count):
             x = positions[i % len(positions)]
+            height = 0
+            if isinstance(x, tuple):
+                x, height = x
+                height = max(0, min(300, float(height)))
             x = max(20, min(C.WIDTH - 20, float(x)))
-            y = -30 - (i // max(1, len(positions))) * 60
+            y = -30 - (i // max(1, len(positions))) * 60 - height
             if types:
                 cls = types[i % len(types)]
                 try:
