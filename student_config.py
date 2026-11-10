@@ -54,6 +54,12 @@ import random
 full_name = "Nova Starfighter"
 player_name = full_name[:4]
 
+# --- Chapter 6: displaying and asking ----------------------------------
+# These two lines run at launch, before the window opens.
+print("Welcome to Asteroid Defender")
+player_name = input("What is your pilot name? ")
+
+
 # title shown at the top of the window
 window_title = f"Asteroid Defender - pilot {player_name}"
 
@@ -131,3 +137,45 @@ unlocked_weapons = {"laser", "cannon"}
 # A tuple: the starting position, which must not change.
 # The horizontal coordinate is drawn at random on each launch.
 start_position = (random.randint(100, 700), 510)
+
+# --- Chapter 6: functions -------------------------------------------------
+# The game calls these functions whenever it needs them.
+# Each one is defined once, but called throughout the whole round.
+
+def hud_text(name, score, ammo):
+    """Builds the information line at the top of the screen."""
+    return f"{name} | Score: {score} | Ammo: {ammo}"
+
+def game_over_text(name, score):
+    """Builds the end-of-round message."""
+    return f"Game over, {name}: {score} points"
+
+def difficulty_level(score):
+    """Returns the difficulty tier matching the score."""
+    if score < 1000:
+        return "easy"
+    elif score < 3000:
+        return "normal"
+    else:
+        return "hard"
+
+def should_keep_firing(ammo, trigger_held):
+    """Allows firing while rounds are left and the key is held."""
+    return ammo > 0 and trigger_held
+
+def damage(base, multiplier=1.0):
+    """Damage dealt; the multiplier is optional."""
+    return int(base * multiplier)
+
+def spawn_pattern(wave):
+    """Enemy count and speed for the given wave."""
+    count = 3 + wave
+    speed = 2.0 + wave * 0.3
+    return count, speed
+
+def spawn_row(n):
+    """Horizontal positions for n enemies, always on screen."""
+    positions = []
+    for i in range(n):
+        positions.append(60 + (i * 110) % 680)
+    return positions

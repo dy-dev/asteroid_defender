@@ -793,6 +793,11 @@ class Game:
         # recurring bonus (model A): a bonus drops at each threshold crossed
         self._check_bonus_threshold(f, enemy.x, enemy.y)
 
+        # the student's bonuses (powerup_colors from chapter 5, powerups
+        # from chapter 8) drop at random from destroyed enemies
+        if f.unlocked.get("powerup_colors") or f.unlocked.get("powerups"):
+            self._spawn_powerup(enemy.x, enemy.y, f)
+
         for _ in range(8):
             self.particles.append([enemy.x, enemy.y,
                                    random.uniform(-3, 3),
@@ -943,7 +948,7 @@ class Game:
         if types:
             cls = types[random.randrange(len(types))]
             try:
-                self.enemies.append(StudentEnemy(cls(x, y), speed))
+                self.enemies.append(StudentEnemy(cls(x, y), speed, f.enemy_tints.get(cls)))
             except Exception:  # noqa: BLE001
                 self.enemies.append(self._new_asteroid(x, y, speed))
         else:
@@ -981,8 +986,12 @@ class Game:
 
         for i in range(count):
             x = positions[i % len(positions)]
+            height = 0
+            if isinstance(x, tuple):
+                x, height = x
+                height = max(0, min(300, float(height)))
             x = max(20, min(C.WIDTH - 20, float(x)))
-            y = -30 - (i // max(1, len(positions))) * 60
+            y = -30 - (i // max(1, len(positions))) * 60 - height
             if types:
                 cls = types[i % len(types)]
                 try:
@@ -990,7 +999,7 @@ class Game:
                 except Exception:  # noqa: BLE001
                     self.enemies.append(self._new_asteroid(x, y, speed))
                     continue
-                self.enemies.append(StudentEnemy(inst, speed))
+                self.enemies.append(StudentEnemy(inst, speed, f.enemy_tints.get(cls)))
             else:
                 self.enemies.append(self._new_asteroid(x, y, speed))
 
@@ -1023,6 +1032,10 @@ class Game:
             return self.features.difficulty(self.score)
         if key == "powerup_colors":
             return len(self.features.powerup_colors)
+        if key == "custom_powerups":
+            return len(self.features.powerups)
+        if key == "enemy_kinds":
+            return len(set(self.features.enemy_types))
         if key == "last_damage":
             return "-" if self.last_damage is None else self.last_damage
         return "?"

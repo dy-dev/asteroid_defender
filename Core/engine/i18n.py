@@ -79,6 +79,12 @@ TEXTS = {
         "fr": "Fin de partie : game_over_text() à écrire",
         "en": "Game over: game_over_text() to write",
     },
+    "missing_function_log": {
+        "fr": "student_config.py : fonction {name}() absente, attendue au "
+              "chapitre {chapter}. Valeur par défaut utilisée.",
+        "en": "student_config.py: function {name}() missing, expected in "
+              "chapter {chapter}. Default value used.",
+    },
     "default_game_over_line": {
         "fr": "{name} — Partie terminée — score : {score}",
         "en": "{name} — Game over — score: {score}",
@@ -120,6 +126,8 @@ TEXTS = {
     "debug_colours": {"fr": "couleurs", "en": "colours"},
     "debug_wave": {"fr": "vague", "en": "wave"},
     "debug_difficulty": {"fr": "difficulté", "en": "difficulty"},
+    "debug_custom_bonuses": {"fr": "bonus définis", "en": "custom bonuses"},
+    "debug_enemy_kinds": {"fr": "sortes d'ennemis", "en": "enemy kinds"},
 
     # --- game over --------------------------------------------------------
     "game_over_title": {"fr": "PARTIE TERMINÉE", "en": "GAME OVER"},
@@ -345,8 +353,8 @@ TEXTS = {
         "en": "{name} does not return {expected}: default value used",
     },
     "warn_spawn_row_items": {
-        "fr": "{name} : les valeurs qui ne sont pas des nombres sont ignorées",
-        "en": "{name}: the values that are not numbers are ignored",
+        "fr": "{name} : les valeurs qui ne sont ni des nombres ni des couples de nombres sont ignorées",
+        "en": "{name}: the values that are neither numbers nor pairs of numbers are ignored",
     },
     "expected_number": {"fr": "un nombre", "en": "a number"},
     "expected_number_list": {"fr": "une liste de nombres", "en": "a list of numbers"},
