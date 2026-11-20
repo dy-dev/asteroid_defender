@@ -400,7 +400,8 @@ class Game:
             if held:
                 self.space_frames += 1
                 trigger = False
-                if (not self.charging and self.ship.ammo > 0
+                if (not self.charging and self.burst_remaining == 0
+                        and self.ship.ammo > 0
                         and self.space_frames >= C.CHARGE_HOLD_FRAMES):
                     # start charging
                     self.charging = True
