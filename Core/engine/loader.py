@@ -17,6 +17,7 @@ import re
 import sys
 import tokenize
 import types
+import zlib
 
 from engine import config as C
 from engine.i18n import t
@@ -308,6 +309,30 @@ def normalize_weapon(name, item):
 #  Full configuration loading
 # ----------------------------------------------------------------------
 
+def enemy_tints(kinds):
+    """One tint per enemy kind, stable from one launch to the next and
+    distinct between the kinds of the same list.
+
+    Each kind starts from the colour given by crc32 of its class name
+    (stable, unlike hash()); if that colour is already taken by a kind
+    earlier in the list, it moves to the next free colour of the palette.
+    """
+    names = list(C.COLOR_NAMES)
+    taken = {}
+    for kind in kinds:
+        if kind in taken:
+            continue
+        index = zlib.crc32(kind.__name__.encode("utf-8")) % len(names)
+        used = set(taken.values())
+        candidate = names[index]
+        for step in range(len(names)):
+            candidate = names[(index + step) % len(names)]
+            if candidate not in used:
+                break
+        taken[kind] = candidate
+    return {kind: C.COLOR_NAMES[name] for kind, name in taken.items()}
+
+
 class StudentFeatures:
     """State of all concepts: value used + enabled or not.
 
@@ -430,6 +455,7 @@ class StudentFeatures:
         # --- Enemy types: classes with a move() method -------------------
         raw_types = self._val("enemy_types", [], (list, tuple))
         self.enemy_types = [t for t in raw_types if isinstance(t, type)]
+        self.enemy_tints = enemy_tints(self.enemy_types)
 
         # --- files and exceptions -----------------------------
         self.has_save_highscore = self._fn("save_highscore")
@@ -494,6 +520,9 @@ class StudentFeatures:
         return value if isinstance(value, str) else "easy"
 
     def row_positions(self, n):
+        """x positions, or (x, height) pairs: the height raises that
+        enemy above its row (0 = on the row), so a formation can leave
+        the single horizontal line."""
         default = [C.WIDTH // 2]
         value, ok = self._call("spawn_row", default, n)
         if not ok:
@@ -501,7 +530,13 @@ class StudentFeatures:
         if not isinstance(value, (list, tuple)):
             self._warn_type("spawn_row", "expected_number_list")
             return default
-        clean = [p for p in value if isinstance(p, (int, float))]
+        clean = []
+        for p in value:
+            if isinstance(p, (int, float)) and not isinstance(p, bool):
+                clean.append(p)
+            elif (isinstance(p, (list, tuple)) and len(p) == 2
+                  and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in p)):
+                clean.append((p[0], p[1]))
         if not clean:
             self._warn_type("spawn_row", "expected_number_list")
         elif len(clean) < len(value):

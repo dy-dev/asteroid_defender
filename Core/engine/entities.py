@@ -166,9 +166,10 @@ class StudentEnemy:
     x / y.
     """
 
-    def __init__(self, instance, fallback_speed=2.0):
+    def __init__(self, instance, fallback_speed=2.0, tint=None):
         self.obj = instance
         self.fallback_speed = fallback_speed
+        self.tint = tint
         self.radius = 20
         self.broken = False
 
@@ -231,11 +232,13 @@ class StudentEnemy:
         if image is not None:
             assets.blit_centered(surf, image, cx, cy)
             return
-        name = type(self.obj).__name__
-        # one tint per type, so each enemy type stands out. crc32 and not
-        # hash(): string hashes change at every launch (PYTHONHASHSEED)
-        index = zlib.crc32(name.encode("utf-8")) % len(C.COLOR_NAMES)
-        tint = C.COLOR_NAMES[list(C.COLOR_NAMES)[index]]
+        # one tint per kind, chosen by the loader (stable and distinct);
+        # crc32 of the class name when none was given
+        tint = self.tint
+        if tint is None:
+            name = type(self.obj).__name__
+            index = zlib.crc32(name.encode("utf-8")) % len(C.COLOR_NAMES)
+            tint = C.COLOR_NAMES[list(C.COLOR_NAMES)[index]]
         pygame.draw.circle(surf, tint, (cx, cy), self.radius)
         pygame.draw.circle(surf, C.WHITE, (cx, cy), self.radius, 2)
         pygame.draw.circle(surf, C.DARK, (cx, cy), max(3, self.radius // 3))
