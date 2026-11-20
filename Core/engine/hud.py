@@ -266,8 +266,8 @@ FUNCTION_SIGNATURES = {
                       {"fr": "renvoie un couple (nombre, vitesse)",
                        "en": "returns a pair (count, speed)"}),
     "spawn_row": ("spawn_row(n)",
-                  {"fr": "renvoie une liste d'abscisses",
-                   "en": "returns a list of x positions"}),
+                  {"fr": "renvoie une liste d'abscisses, ou de couples (abscisse, hauteur)",
+                   "en": "returns a list of x positions, or of (x, height) pairs"}),
 }
 
 
